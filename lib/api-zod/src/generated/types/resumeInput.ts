@@ -9,4 +9,5 @@
 export interface ResumeInput {
   resumeName: string;
   templateId: number;
+  fontFamily?: string;
 }

@@ -69,11 +69,12 @@ router.get("/resumes/:resumeId", requireAuth, async (req: AuthRequest, res) => {
 router.patch("/resumes/:resumeId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const resumeId = parseInt(String(req.params.resumeId));
-    const { resumeName, templateId, isPublic } = req.body;
+    const { resumeName, templateId, fontFamily, isPublic } = req.body;
 
     const updates: Record<string, unknown> = {};
     if (resumeName !== undefined) updates.resumeName = resumeName;
     if (templateId !== undefined) updates.templateId = templateId;
+    if (fontFamily !== undefined) updates.fontFamily = fontFamily;
     if (isPublic !== undefined) {
       updates.isPublic = isPublic;
       if (isPublic) {

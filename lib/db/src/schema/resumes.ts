@@ -7,6 +7,7 @@ export const resumesTable = pgTable("resumes", {
   userId: integer("user_id").notNull(),
   resumeName: text("resume_name").notNull(),
   templateId: integer("template_id").notNull().default(1),
+  fontFamily: text("font_family").notNull().default("Inter"),
   isPublic: boolean("is_public").notNull().default(false),
   publicUrl: text("public_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import {
   useGetResume, useGetAtsScore, useExportResumePdf, useUpdateResume, useListTemplates,
@@ -11,9 +11,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ResumePreview from "@/components/resume-preview";
-import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
+import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, ChevronRight, Type } from "lucide-react";
 
 const TEMPLATE_COLORS: Record<number, string> = { 1: "#1e40af", 2: "#111827", 3: "#0d9488", 4: "#b45309", 5: "#374151" };
+
+const FONT_OPTIONS = [
+  { value: "Inter", label: "Inter", style: "Inter, sans-serif" },
+  { value: "Georgia", label: "Georgia", style: "Georgia, serif" },
+  { value: "Roboto", label: "Roboto", style: "Roboto, sans-serif" },
+  { value: "Merriweather", label: "Merriweather", style: "Merriweather, serif" },
+  { value: "Playfair Display", label: "Playfair Display", style: "'Playfair Display', serif" },
+  { value: "Lato", label: "Lato", style: "Lato, sans-serif" },
+  { value: "Montserrat", label: "Montserrat", style: "Montserrat, sans-serif" },
+  { value: "Open Sans", label: "Open Sans", style: "'Open Sans', sans-serif" },
+  { value: "Source Serif 4", label: "Source Serif", style: "'Source Serif 4', serif" },
+  { value: "Courier Prime", label: "Courier Prime", style: "'Courier Prime', monospace" },
+];
 
 function AtsScoreWidget({ score, tips, keywordsFound, missingKeywords }: { score: number; tips: string[]; keywordsFound: string[]; missingKeywords: string[] }) {
   const color = score >= 70 ? "#16a34a" : score >= 40 ? "#d97706" : "#dc2626";
@@ -88,7 +101,6 @@ export default function Preview() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const previewRef = useRef<HTMLDivElement>(null);
 
   const { data: resumeDetail, isLoading } = useGetResume(resumeId, { query: { queryKey: getGetResumeQueryKey(resumeId), enabled: !!resumeId } });
   const { data: atsScore } = useGetAtsScore(resumeId, { query: { queryKey: getGetAtsScoreQueryKey(resumeId), enabled: !!resumeId } });
@@ -99,14 +111,25 @@ export default function Preview() {
   const updateMutation = useUpdateResume();
 
   const [currentTemplateId, setCurrentTemplateId] = useState<number | null>(null);
+  const [currentFont, setCurrentFont] = useState<string | null>(null);
 
   const templateId = currentTemplateId ?? resumeDetail?.resume?.templateId ?? 1;
+  const fontFamily = currentFont ?? resumeDetail?.resume?.fontFamily ?? "Inter";
 
   const handleTemplateChange = (val: string) => {
     const tid = parseInt(val);
     setCurrentTemplateId(tid);
     if (resumeId) {
       updateMutation.mutate({ resumeId, data: { templateId: tid } }, {
+        onSuccess: () => qc.invalidateQueries({ queryKey: getGetResumeQueryKey(resumeId) }),
+      });
+    }
+  };
+
+  const handleFontChange = (font: string) => {
+    setCurrentFont(font);
+    if (resumeId) {
+      updateMutation.mutate({ resumeId, data: { fontFamily: font } }, {
         onSuccess: () => qc.invalidateQueries({ queryKey: getGetResumeQueryKey(resumeId) }),
       });
     }
@@ -184,8 +207,8 @@ export default function Preview() {
       <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         {/* Resume Preview */}
         <div className="flex justify-center">
-          <div ref={previewRef} style={{ width: "100%", maxWidth: 794 }}>
-            <ResumePreview data={data} templateId={templateId} resumeName={resume.resumeName} />
+          <div style={{ width: "100%", maxWidth: 794 }}>
+            <ResumePreview data={data} templateId={templateId} resumeName={resume.resumeName} fontFamily={fontFamily} />
           </div>
         </div>
 
@@ -219,6 +242,33 @@ export default function Preview() {
               <div className="flex justify-between text-xs text-muted-foreground mt-1.5 px-0.5">
                 {["Mod", "Min", "Cre", "Corp", "Tech"].map(n => (
                   <span key={n}>{n}</span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Font picker */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Type className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-xs font-semibold text-muted-foreground">Font Style</p>
+              </div>
+              <div className="space-y-1">
+                {FONT_OPTIONS.map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => handleFontChange(f.value)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded text-sm transition-all border ${
+                      fontFamily === f.value
+                        ? "border-primary bg-primary/5 text-primary font-medium"
+                        : "border-transparent hover:bg-muted text-foreground"
+                    }`}
+                    style={{ fontFamily: f.style }}
+                    data-testid={`font-pick-${f.value}`}
+                  >
+                    {f.label}
+                  </button>
                 ))}
               </div>
             </CardContent>

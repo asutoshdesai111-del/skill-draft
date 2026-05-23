@@ -60,6 +60,37 @@ export const LogoutResponse = zod.object({
 
 
 /**
+ * @summary Request a password reset token
+ */
+export const ForgotPasswordBody = zod.object({
+  "email": zod.string().email()
+})
+
+export const ForgotPasswordResponse = zod.object({
+  "message": zod.string(),
+  "resetToken": zod.string(),
+  "resetLink": zod.string()
+})
+
+
+/**
+ * @summary Reset password using a token
+ */
+export const resetPasswordBodyNewPasswordMin = 8;
+
+
+
+export const ResetPasswordBody = zod.object({
+  "token": zod.string(),
+  "newPassword": zod.string().min(resetPasswordBodyNewPasswordMin)
+})
+
+export const ResetPasswordResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Get current user
  */
 export const GetMeResponse = zod.object({
@@ -78,6 +109,7 @@ export const ListResumesResponseItem = zod.object({
   "userId": zod.number(),
   "resumeName": zod.string(),
   "templateId": zod.number(),
+  "fontFamily": zod.string(),
   "isPublic": zod.boolean(),
   "publicUrl": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -91,7 +123,8 @@ export const ListResumesResponse = zod.array(ListResumesResponseItem)
  */
 export const CreateResumeBody = zod.object({
   "resumeName": zod.string(),
-  "templateId": zod.number()
+  "templateId": zod.number(),
+  "fontFamily": zod.string().optional()
 })
 
 
@@ -108,6 +141,7 @@ export const GetResumeResponse = zod.object({
   "userId": zod.number(),
   "resumeName": zod.string(),
   "templateId": zod.number(),
+  "fontFamily": zod.string(),
   "isPublic": zod.boolean(),
   "publicUrl": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -190,6 +224,7 @@ export const UpdateResumeParams = zod.object({
 export const UpdateResumeBody = zod.object({
   "resumeName": zod.string().optional(),
   "templateId": zod.number().optional(),
+  "fontFamily": zod.string().optional(),
   "isPublic": zod.boolean().optional()
 })
 
@@ -198,6 +233,7 @@ export const UpdateResumeResponse = zod.object({
   "userId": zod.number(),
   "resumeName": zod.string(),
   "templateId": zod.number(),
+  "fontFamily": zod.string(),
   "isPublic": zod.boolean(),
   "publicUrl": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -790,6 +826,7 @@ export const GetDashboardStatsResponse = zod.object({
   "userId": zod.number(),
   "resumeName": zod.string(),
   "templateId": zod.number(),
+  "fontFamily": zod.string(),
   "isPublic": zod.boolean(),
   "publicUrl": zod.string().nullish(),
   "createdAt": zod.string(),

@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ResumeUpdate {
-  resumeName?: string;
-  templateId?: number;
-  fontFamily?: string;
-  isPublic?: boolean;
+export interface ForgotPasswordInput {
+  email: string;
 }

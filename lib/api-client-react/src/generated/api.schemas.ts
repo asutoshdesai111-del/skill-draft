@@ -24,6 +24,22 @@ export interface User {
   createdAt: string;
 }
 
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ForgotPasswordResult {
+  message: string;
+  resetToken: string;
+  resetLink: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  /** @minLength 8 */
+  newPassword: string;
+}
+
 export interface RegisterInput {
   /** @minLength 2 */
   username: string;
@@ -47,6 +63,7 @@ export interface Resume {
   userId: number;
   resumeName: string;
   templateId: number;
+  fontFamily: string;
   isPublic: boolean;
   /** @nullable */
   publicUrl?: string | null;
@@ -57,11 +74,13 @@ export interface Resume {
 export interface ResumeInput {
   resumeName: string;
   templateId: number;
+  fontFamily?: string;
 }
 
 export interface ResumeUpdate {
   resumeName?: string;
   templateId?: number;
+  fontFamily?: string;
   isPublic?: boolean;
 }
 

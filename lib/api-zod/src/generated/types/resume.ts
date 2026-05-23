@@ -11,6 +11,7 @@ export interface Resume {
   userId: number;
   resumeName: string;
   templateId: number;
+  fontFamily: string;
   isPublic: boolean;
   /** @nullable */
   publicUrl?: string | null;

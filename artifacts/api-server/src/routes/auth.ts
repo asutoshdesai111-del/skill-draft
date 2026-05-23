@@ -1,5 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, generateToken, type AuthRequest } from "../middlewares/auth";
@@ -88,6 +89,77 @@ router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
     res.json({ id: user.id, username: user.username, email: user.email, createdAt: user.createdAt });
   } catch (err) {
     logger.error({ err }, "GetMe error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /auth/forgot-password
+router.post("/auth/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ error: "Email is required" });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "No account found with that email address" });
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    await db.update(usersTable)
+      .set({ resetToken, resetTokenExpiry })
+      .where(eq(usersTable.id, user.id));
+
+    const resetLink = `/reset-password?token=${resetToken}`;
+
+    res.json({
+      message: "Password reset token generated. In production, this would be sent to your email.",
+      resetToken,
+      resetLink,
+    });
+  } catch (err) {
+    logger.error({ err }, "ForgotPassword error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /auth/reset-password
+router.post("/auth/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      res.status(400).json({ error: "Token and new password are required" });
+      return;
+    }
+    if (newPassword.length < 8) {
+      res.status(400).json({ error: "Password must be at least 8 characters" });
+      return;
+    }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.resetToken, token)).limit(1);
+    if (!user || !user.resetTokenExpiry) {
+      res.status(400).json({ error: "Invalid or expired reset token" });
+      return;
+    }
+
+    if (new Date() > user.resetTokenExpiry) {
+      res.status(400).json({ error: "Reset token has expired. Please request a new one." });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.update(usersTable)
+      .set({ passwordHash, resetToken: null, resetTokenExpiry: null })
+      .where(eq(usersTable.id, user.id));
+
+    res.json({ success: true });
+  } catch (err) {
+    logger.error({ err }, "ResetPassword error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

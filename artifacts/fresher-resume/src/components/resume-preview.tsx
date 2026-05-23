@@ -15,6 +15,7 @@ interface ResumePreviewProps {
   data: ResumeData;
   templateId: number;
   resumeName?: string;
+  fontFamily?: string;
 }
 
 const PROFICIENCY_WIDTHS: Record<string, string> = {
@@ -536,13 +537,15 @@ function TechnicalTemplate({ data, resumeName }: { data: ResumeData; resumeName?
   );
 }
 
-export default function ResumePreview({ data, templateId, resumeName }: ResumePreviewProps) {
+export default function ResumePreview({ data, templateId, resumeName, fontFamily }: ResumePreviewProps) {
+  const font = fontFamily || "Inter";
+  const style = { fontFamily: `'${font}', sans-serif` };
   switch (templateId) {
-    case 1: return <ModernTemplate data={data} resumeName={resumeName} />;
-    case 2: return <MinimalistTemplate data={data} resumeName={resumeName} />;
-    case 3: return <CreativeTemplate data={data} resumeName={resumeName} />;
-    case 4: return <CorporateTemplate data={data} resumeName={resumeName} />;
-    case 5: return <TechnicalTemplate data={data} resumeName={resumeName} />;
-    default: return <ModernTemplate data={data} resumeName={resumeName} />;
+    case 1: return <div style={style}><ModernTemplate data={data} resumeName={resumeName} /></div>;
+    case 2: return <div style={style}><MinimalistTemplate data={data} resumeName={resumeName} /></div>;
+    case 3: return <div style={style}><CreativeTemplate data={data} resumeName={resumeName} /></div>;
+    case 4: return <div style={style}><CorporateTemplate data={data} resumeName={resumeName} /></div>;
+    case 5: return <div style={style}><TechnicalTemplate data={data} resumeName={resumeName} /></div>;
+    default: return <div style={style}><ModernTemplate data={data} resumeName={resumeName} /></div>;
   }
 }

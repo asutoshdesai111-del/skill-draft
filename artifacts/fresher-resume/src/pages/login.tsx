@@ -8,12 +8,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FileText, Loader2 } from "lucide-react";
 
 const schema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
+  password: z
+    .string()
+    .min(1, "Password is required"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -23,8 +29,9 @@ export default function Login() {
   const { toast } = useToast();
   const loginMutation = useLogin();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitted } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: "onTouched",
   });
 
   const onSubmit = (data: FormData) => {
@@ -57,30 +64,56 @@ export default function Login() {
             <CardDescription>Enter your credentials to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
+                  autoComplete="email"
                   data-testid="input-email"
+                  aria-invalid={!!errors.email}
                   {...register("email")}
+                  className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                {errors.email && (
+                  <p className="text-xs text-destructive flex items-center gap-1" role="alert">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
-                <Input
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+                <PasswordInput
                   id="password"
-                  type="password"
                   placeholder="Your password"
+                  autoComplete="current-password"
                   data-testid="input-password"
+                  aria-invalid={!!errors.password}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
                   {...register("password")}
                 />
-                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+                {errors.password && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
+
+              {isSubmitted && loginMutation.isError && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-xs text-destructive">
+                    {(loginMutation.error as { data?: { error?: string } })?.data?.error || "Invalid email or password"}
+                  </p>
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={loginMutation.isPending} data-testid="button-login">
                 {loginMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}

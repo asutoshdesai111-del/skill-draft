@@ -8,14 +8,32 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2, CheckCircle, XCircle } from "lucide-react";
+
+const passwordRules = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "At least one uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "At least one number", test: (p: string) => /\d/.test(p) },
+];
 
 const schema = z.object({
-  username: z.string().min(2, "Username must be at least 2 characters"),
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
+  username: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(60, "Name is too long")
+    .regex(/^[a-zA-Z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/\d/, "Password must contain at least one number"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine(d => d.password === d.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -28,9 +46,13 @@ export default function Register() {
   const { toast } = useToast();
   const registerMutation = useRegister();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, formState: { errors, touchedFields } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: "onTouched",
   });
+
+  const passwordValue = watch("password", "");
+  const showStrength = touchedFields.password && passwordValue.length > 0;
 
   const onSubmit = (data: FormData) => {
     registerMutation.mutate({ data: { username: data.username, email: data.email, password: data.password } }, {
@@ -63,29 +85,88 @@ export default function Register() {
             <CardDescription>Build professional resumes in minutes</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="space-y-1.5">
                 <Label htmlFor="username">Full Name</Label>
-                <Input id="username" placeholder="Rahul Sharma" data-testid="input-username" {...register("username")} />
-                {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
+                <Input
+                  id="username"
+                  placeholder="Rahul Sharma"
+                  autoComplete="name"
+                  data-testid="input-username"
+                  aria-invalid={!!errors.username}
+                  {...register("username")}
+                  className={errors.username ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {errors.username && (
+                  <p className="text-xs text-destructive" role="alert">{errors.username.message}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="rahul@example.com" data-testid="input-email" {...register("email")} />
-                {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="rahul@example.com"
+                  autoComplete="email"
+                  data-testid="input-email"
+                  aria-invalid={!!errors.email}
+                  {...register("email")}
+                  className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive" role="alert">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="Min 8 characters" data-testid="input-password" {...register("password")} />
-                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+                <PasswordInput
+                  id="password"
+                  placeholder="Min 8 characters"
+                  autoComplete="new-password"
+                  data-testid="input-password"
+                  aria-invalid={!!errors.password}
+                  className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("password")}
+                />
+                {showStrength && (
+                  <div className="space-y-1 mt-1">
+                    {passwordRules.map(rule => {
+                      const passed = rule.test(passwordValue);
+                      return (
+                        <div key={rule.label} className="flex items-center gap-1.5">
+                          {passed
+                            ? <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                            : <XCircle className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
+                          }
+                          <span className={`text-xs ${passed ? "text-green-600" : "text-muted-foreground"}`}>
+                            {rule.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {errors.password && !showStrength && (
+                  <p className="text-xs text-destructive" role="alert">{errors.password.message}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input id="confirmPassword" type="password" placeholder="Repeat password" data-testid="input-confirm-password" {...register("confirmPassword")} />
-                {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
+                <PasswordInput
+                  id="confirmPassword"
+                  placeholder="Repeat password"
+                  autoComplete="new-password"
+                  data-testid="input-confirm-password"
+                  aria-invalid={!!errors.confirmPassword}
+                  className={errors.confirmPassword ? "border-destructive focus-visible:ring-destructive" : ""}
+                  {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-destructive" role="alert">{errors.confirmPassword.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={registerMutation.isPending} data-testid="button-register">

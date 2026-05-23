@@ -105,6 +105,56 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
 
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request a password reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordInput"
+      responses:
+        "200":
+          description: Reset token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForgotPasswordResult"
+        "404":
+          description: Email not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password using a token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordInput"
+      responses:
+        "200":
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /auth/me:
     get:
       operationId: getMe
@@ -1020,6 +1070,41 @@ components:
         - email
         - createdAt
 
+    ForgotPasswordInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+        - email
+
+    ForgotPasswordResult:
+      type: object
+      properties:
+        message:
+          type: string
+        resetToken:
+          type: string
+        resetLink:
+          type: string
+      required:
+        - message
+        - resetToken
+        - resetLink
+
+    ResetPasswordInput:
+      type: object
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+      required:
+        - token
+        - newPassword
+
     RegisterInput:
       type: object
       properties:
@@ -1070,6 +1155,8 @@ components:
           type: string
         templateId:
           type: integer
+        fontFamily:
+          type: string
         isPublic:
           type: boolean
         publicUrl:
@@ -1083,6 +1170,7 @@ components:
         - userId
         - resumeName
         - templateId
+        - fontFamily
         - isPublic
         - createdAt
         - updatedAt
@@ -1094,6 +1182,8 @@ components:
           type: string
         templateId:
           type: integer
+        fontFamily:
+          type: string
       required:
         - resumeName
         - templateId
@@ -1105,6 +1195,8 @@ components:
           type: string
         templateId:
           type: integer
+        fontFamily:
+          type: string
         isPublic:
           type: boolean
 
