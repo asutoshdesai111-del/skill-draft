@@ -5,12 +5,9 @@
  * Fresher Resume Builder API
  * OpenAPI spec version: 0.1.0
  */
+import type { User } from './user';
 
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  isPremium: boolean;
-  planType: string;
-  createdAt: string;
+export interface UpgradeResponse {
+  message: string;
+  user: User;
 }

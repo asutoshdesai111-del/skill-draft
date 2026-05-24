@@ -273,4 +273,130 @@ ${langs.length > 0 ? `<h2>Languages</h2><div class="skills-grid">${langs.map(l =
   }
 });
 
+// GET /resumes/:resumeId/export/docx
+router.get("/resumes/:resumeId/export/docx", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, WidthType } = await import("docx");
+
+    const resumeId = parseInt(String(req.params.resumeId));
+    const [resume] = await db.select().from(resumesTable).where(and(eq(resumesTable.id, resumeId), eq(resumesTable.userId, req.userId!))).limit(1);
+    if (!resume) { res.status(404).json({ error: "Resume not found" }); return; }
+
+    const [pi] = await db.select().from(personalInfoTable).where(eq(personalInfoTable.resumeId, resumeId)).limit(1);
+    const [obj] = await db.select().from(careerObjectiveTable).where(eq(careerObjectiveTable.resumeId, resumeId)).limit(1);
+    const edus = await db.select().from(educationTable).where(eq(educationTable.resumeId, resumeId));
+    const skls = await db.select().from(skillsTable).where(eq(skillsTable.resumeId, resumeId));
+    const projs = await db.select().from(projectsTable).where(eq(projectsTable.resumeId, resumeId));
+    const exps = await db.select().from(experienceTable).where(eq(experienceTable.resumeId, resumeId));
+    const certs = await db.select().from(certificationsTable).where(eq(certificationsTable.resumeId, resumeId));
+    const langs = await db.select().from(languagesTable).where(eq(languagesTable.resumeId, resumeId));
+
+    const sectionHeading = (text: string) => new Paragraph({
+      text,
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 240, after: 80 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "1e40af", space: 4 } },
+    });
+
+    const children: InstanceType<typeof Paragraph>[] = [];
+
+    // Name
+    children.push(new Paragraph({
+      children: [new TextRun({ text: pi?.fullName || resume.resumeName, bold: true, size: 44, color: "1e40af" })],
+      alignment: AlignmentType.CENTER,
+    }));
+
+    // Contact info
+    const contactParts = [pi?.email, pi?.phone, pi?.linkedin, pi?.address].filter(Boolean);
+    if (contactParts.length > 0) {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: contactParts.join("  |  "), size: 18, color: "444444" })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      }));
+    }
+
+    // Career Objective
+    if (obj?.summaryText) {
+      children.push(sectionHeading("Career Objective"));
+      children.push(new Paragraph({ children: [new TextRun({ text: obj.summaryText, size: 20 })], spacing: { after: 120 } }));
+    }
+
+    // Education
+    if (edus.length > 0) {
+      children.push(sectionHeading("Education"));
+      edus.forEach(e => {
+        children.push(new Paragraph({ children: [new TextRun({ text: `${e.degree} in ${e.fieldOfStudy}`, bold: true, size: 22 })] }));
+        children.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}`, size: 20, color: "444444" })], spacing: { after: 80 } }));
+        children.push(new Paragraph({ children: [new TextRun({ text: `${e.graduationYear} | CGPA: ${e.cgpa}`, size: 18, color: "666666" })], spacing: { after: 120 } }));
+      });
+    }
+
+    // Skills
+    if (skls.length > 0) {
+      children.push(sectionHeading("Skills"));
+      const skillText = skls.map(s => `${s.skillName} (${s.proficiencyLevel})`).join("   •   ");
+      children.push(new Paragraph({ children: [new TextRun({ text: skillText, size: 20 })], spacing: { after: 120 } }));
+    }
+
+    // Projects
+    if (projs.length > 0) {
+      children.push(sectionHeading("Projects"));
+      projs.forEach(p => {
+        children.push(new Paragraph({ children: [new TextRun({ text: p.projectTitle, bold: true, size: 22 })] }));
+        if (p.technologies) children.push(new Paragraph({ children: [new TextRun({ text: p.technologies, size: 18, color: "1e40af", italics: true })] }));
+        if (p.description) children.push(new Paragraph({ children: [new TextRun({ text: p.description, size: 20 })], spacing: { after: 120 } }));
+      });
+    }
+
+    // Work Experience
+    if (exps.length > 0) {
+      children.push(sectionHeading("Work Experience"));
+      exps.forEach(e => {
+        children.push(new Paragraph({ children: [new TextRun({ text: e.position, bold: true, size: 22 }), new TextRun({ text: ` at ${e.company}`, size: 22, color: "1e40af" })] }));
+        children.push(new Paragraph({ children: [new TextRun({ text: `${e.startDate} – ${e.isCurrent ? "Present" : (e.endDate || "")}`, size: 18, color: "666666", italics: true })] }));
+        if (e.responsibilities) children.push(new Paragraph({ children: [new TextRun({ text: e.responsibilities, size: 20 })], spacing: { after: 120 } }));
+      });
+    }
+
+    // Certifications
+    if (certs.length > 0) {
+      children.push(sectionHeading("Certifications"));
+      certs.forEach(c => {
+        children.push(new Paragraph({ children: [new TextRun({ text: c.certName, bold: true, size: 22 })] }));
+        if (c.issuingOrg) children.push(new Paragraph({ children: [new TextRun({ text: `${c.issuingOrg}${c.dateIssued ? " | " + c.dateIssued : ""}`, size: 18, color: "666666" })], spacing: { after: 100 } }));
+      });
+    }
+
+    // Languages
+    if (langs.length > 0) {
+      children.push(sectionHeading("Languages"));
+      const langText = langs.map(l => `${l.languageName} (${l.proficiency})`).join("   •   ");
+      children.push(new Paragraph({ children: [new TextRun({ text: langText, size: 20 })], spacing: { after: 120 } }));
+    }
+
+    const doc = new Document({
+      sections: [{
+        properties: { page: { margin: { top: 720, right: 900, bottom: 720, left: 900 } } as never },
+        children,
+      }],
+      styles: {
+        default: { document: { run: { font: "Calibri", size: 20 } } },
+        paragraphStyles: [
+          { id: "Heading2", name: "Heading 2", run: { bold: true, size: 24, color: "1e40af" }, paragraph: {} },
+        ],
+      },
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    const docxBase64 = buffer.toString("base64");
+    const filename = `${(pi?.fullName || resume.resumeName).replace(/\s+/g, "_")}_Resume.docx`;
+
+    res.json({ docxBase64, filename });
+  } catch (err) {
+    logger.error({ err }, "Export DOCX error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

@@ -6,11 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  isPremium: boolean;
+export interface UpgradeInput {
   planType: string;
-  createdAt: string;
 }

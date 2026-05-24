@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+
 import { requireAuth, generateToken, type AuthRequest } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 
@@ -86,9 +87,35 @@ router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
       res.status(401).json({ error: "User not found" });
       return;
     }
-    res.json({ id: user.id, username: user.username, email: user.email, createdAt: user.createdAt });
+    res.json({ id: user.id, username: user.username, email: user.email, isPremium: user.isPremium, planType: user.planType, createdAt: user.createdAt });
   } catch (err) {
     logger.error({ err }, "GetMe error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /auth/upgrade
+router.post("/auth/upgrade", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { planType } = req.body;
+    if (!planType) {
+      res.status(400).json({ error: "planType is required" });
+      return;
+    }
+    const [user] = await db.update(usersTable)
+      .set({ isPremium: true, planType, planActivatedAt: new Date() })
+      .where(eq(usersTable.id, req.userId!))
+      .returning();
+    if (!user) {
+      res.status(401).json({ error: "User not found" });
+      return;
+    }
+    res.json({
+      message: "Plan upgraded successfully!",
+      user: { id: user.id, username: user.username, email: user.email, isPremium: user.isPremium, planType: user.planType, createdAt: user.createdAt },
+    });
+  } catch (err) {
+    logger.error({ err }, "Upgrade error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

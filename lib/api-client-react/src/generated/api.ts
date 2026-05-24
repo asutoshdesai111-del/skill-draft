@@ -25,6 +25,7 @@ import type {
   Certification,
   CertificationInput,
   DashboardStats,
+  DocxExportResult,
   Education,
   EducationInput,
   ErrorResponse,
@@ -53,6 +54,8 @@ import type {
   SkillInput,
   SuccessResponse,
   Template,
+  UpgradeInput,
+  UpgradeResponse,
   User
 } from './api.schemas';
 
@@ -357,6 +360,77 @@ export const useLogout = <TError = ErrorType<unknown>,
       return useMutation(getLogoutMutationOptions(options));
     }
 
+export const getUpgradePlanUrl = () => {
+
+
+
+
+  return `/api/auth/upgrade`
+}
+
+/**
+ * @summary Upgrade to premium plan
+ */
+export const upgradePlan = async (upgradeInput: UpgradeInput, options?: RequestInit): Promise<UpgradeResponse> => {
+
+  return customFetch<UpgradeResponse>(getUpgradePlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      upgradeInput,)
+  }
+);}
+
+
+
+
+export const getUpgradePlanMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradePlan>>, TError,{data: BodyType<UpgradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upgradePlan>>, TError,{data: BodyType<UpgradeInput>}, TContext> => {
+
+const mutationKey = ['upgradePlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upgradePlan>>, {data: BodyType<UpgradeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  upgradePlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpgradePlanMutationResult = NonNullable<Awaited<ReturnType<typeof upgradePlan>>>
+    export type UpgradePlanMutationBody = BodyType<UpgradeInput>
+    export type UpgradePlanMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Upgrade to premium plan
+ */
+export const useUpgradePlan = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradePlan>>, TError,{data: BodyType<UpgradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upgradePlan>>,
+        TError,
+        {data: BodyType<UpgradeInput>},
+        TContext
+      > => {
+      return useMutation(getUpgradePlanMutationOptions(options));
+    }
+
 export const getForgotPasswordUrl = () => {
 
 
@@ -564,6 +638,83 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getExportResumeDocxUrl = (resumeId: number,) => {
+
+
+
+
+  return `/api/resumes/${resumeId}/export/docx`
+}
+
+/**
+ * @summary Export resume as DOCX (Word document, returns base64)
+ */
+export const exportResumeDocx = async (resumeId: number, options?: RequestInit): Promise<DocxExportResult> => {
+
+  return customFetch<DocxExportResult>(getExportResumeDocxUrl(resumeId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportResumeDocxQueryKey = (resumeId: number,) => {
+    return [
+    `/api/resumes/${resumeId}/export/docx`
+    ] as const;
+    }
+
+
+export const getExportResumeDocxQueryOptions = <TData = Awaited<ReturnType<typeof exportResumeDocx>>, TError = ErrorType<unknown>>(resumeId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportResumeDocx>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportResumeDocxQueryKey(resumeId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportResumeDocx>>> = ({ signal }) => exportResumeDocx(resumeId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(resumeId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportResumeDocx>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportResumeDocxQueryResult = NonNullable<Awaited<ReturnType<typeof exportResumeDocx>>>
+export type ExportResumeDocxQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Export resume as DOCX (Word document, returns base64)
+ */
+
+export function useExportResumeDocx<TData = Awaited<ReturnType<typeof exportResumeDocx>>, TError = ErrorType<unknown>>(
+ resumeId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportResumeDocx>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportResumeDocxQueryOptions(resumeId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -32,10 +32,10 @@ function ProficiencyBar({ level }: { level: string }) {
 }
 
 // ── Template 1: Modern ─────────────────────────────────────────────────────────
-function ModernTemplate({ data, resumeName }: { data: ResumeData; resumeName?: string }) {
+function ModernTemplate({ data, resumeName, fontFamily }: { data: ResumeData; resumeName?: string; fontFamily?: string }) {
   const pi = data.personalInfo;
   return (
-    <div className="resume-preview template-modern" style={{ display: "flex", flexDirection: "column" }}>
+    <div className="resume-preview template-modern" style={{ display: "flex", flexDirection: "column", fontFamily: fontFamily ? `'${fontFamily}', sans-serif` : undefined }}>
       {/* Header */}
       <div className="resume-header">
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: -0.5 }}>{pi?.fullName || resumeName || "Your Name"}</h1>
@@ -143,10 +143,10 @@ function ModernTemplate({ data, resumeName }: { data: ResumeData; resumeName?: s
 }
 
 // ── Template 2: Minimalist ─────────────────────────────────────────────────────
-function MinimalistTemplate({ data, resumeName }: { data: ResumeData; resumeName?: string }) {
+function MinimalistTemplate({ data, resumeName, fontFamily }: { data: ResumeData; resumeName?: string; fontFamily?: string }) {
   const pi = data.personalInfo;
   return (
-    <div className="resume-preview template-minimalist">
+    <div className="resume-preview template-minimalist" style={{ fontFamily: fontFamily ? `'${fontFamily}', sans-serif` : undefined }}>
       <div className="resume-header">
         <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, letterSpacing: -1 }}>{pi?.fullName || resumeName}</h1>
         <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: "10px", fontSize: 12, color: "#555" }}>
@@ -240,10 +240,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 // ── Template 3: Creative ───────────────────────────────────────────────────────
-function CreativeTemplate({ data, resumeName }: { data: ResumeData; resumeName?: string }) {
+function CreativeTemplate({ data, resumeName, fontFamily }: { data: ResumeData; resumeName?: string; fontFamily?: string }) {
   const pi = data.personalInfo;
   return (
-    <div className="resume-preview template-creative">
+    <div className="resume-preview template-creative" style={{ fontFamily: fontFamily ? `'${fontFamily}', sans-serif` : undefined }}>
       <div className="resume-header">
         <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{pi?.fullName || resumeName}</h1>
         <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 14, fontSize: 13, opacity: 0.95 }}>
@@ -342,10 +342,10 @@ function CreativeTemplate({ data, resumeName }: { data: ResumeData; resumeName?:
 }
 
 // ── Template 4: Corporate ──────────────────────────────────────────────────────
-function CorporateTemplate({ data, resumeName }: { data: ResumeData; resumeName?: string }) {
+function CorporateTemplate({ data, resumeName, fontFamily }: { data: ResumeData; resumeName?: string; fontFamily?: string }) {
   const pi = data.personalInfo;
   return (
-    <div className="resume-preview template-corporate">
+    <div className="resume-preview template-corporate" style={{ fontFamily: fontFamily ? `'${fontFamily}', sans-serif` : undefined }}>
       <div className="resume-header">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: 1, textTransform: "uppercase" }}>{pi?.fullName || resumeName}</h1>
@@ -445,10 +445,10 @@ function CorporateTemplate({ data, resumeName }: { data: ResumeData; resumeName?
 }
 
 // ── Template 5: Technical ──────────────────────────────────────────────────────
-function TechnicalTemplate({ data, resumeName }: { data: ResumeData; resumeName?: string }) {
+function TechnicalTemplate({ data, resumeName, fontFamily }: { data: ResumeData; resumeName?: string; fontFamily?: string }) {
   const pi = data.personalInfo;
   return (
-    <div className="resume-preview template-technical">
+    <div className="resume-preview template-technical" style={{ fontFamily: fontFamily ? `'${fontFamily}', sans-serif` : undefined }}>
       <div className="resume-header">
         <div style={{ fontSize: 13, color: "#86efac", marginBottom: 2, fontFamily: "Courier New, monospace" }}>{"// fresher resume"}</div>
         <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: 1 }}>{pi?.fullName || resumeName}</h1>
@@ -538,14 +538,12 @@ function TechnicalTemplate({ data, resumeName }: { data: ResumeData; resumeName?
 }
 
 export default function ResumePreview({ data, templateId, resumeName, fontFamily }: ResumePreviewProps) {
-  const font = fontFamily || "Inter";
-  const style = { fontFamily: `'${font}', sans-serif` };
   switch (templateId) {
-    case 1: return <div style={style}><ModernTemplate data={data} resumeName={resumeName} /></div>;
-    case 2: return <div style={style}><MinimalistTemplate data={data} resumeName={resumeName} /></div>;
-    case 3: return <div style={style}><CreativeTemplate data={data} resumeName={resumeName} /></div>;
-    case 4: return <div style={style}><CorporateTemplate data={data} resumeName={resumeName} /></div>;
-    case 5: return <div style={style}><TechnicalTemplate data={data} resumeName={resumeName} /></div>;
-    default: return <div style={style}><ModernTemplate data={data} resumeName={resumeName} /></div>;
+    case 1: return <ModernTemplate data={data} resumeName={resumeName} fontFamily={fontFamily} />;
+    case 2: return <MinimalistTemplate data={data} resumeName={resumeName} fontFamily={fontFamily} />;
+    case 3: return <CreativeTemplate data={data} resumeName={resumeName} fontFamily={fontFamily} />;
+    case 4: return <CorporateTemplate data={data} resumeName={resumeName} fontFamily={fontFamily} />;
+    case 5: return <TechnicalTemplate data={data} resumeName={resumeName} fontFamily={fontFamily} />;
+    default: return <ModernTemplate data={data} resumeName={resumeName} fontFamily={fontFamily} />;
   }
 }

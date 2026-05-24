@@ -17,11 +17,27 @@ export interface SuccessResponse {
   success: boolean;
 }
 
+export interface UpgradeInput {
+  planType: string;
+}
+
 export interface User {
   id: number;
   username: string;
   email: string;
+  isPremium: boolean;
+  planType: string;
   createdAt: string;
+}
+
+export interface UpgradeResponse {
+  message: string;
+  user: User;
+}
+
+export interface DocxExportResult {
+  docxBase64: string;
+  filename: string;
 }
 
 export interface ForgotPasswordInput {

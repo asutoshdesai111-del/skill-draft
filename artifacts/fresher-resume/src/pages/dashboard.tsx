@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, MoreVertical, Edit, Trash2, Copy, LogOut, Loader2, BarChart3 } from "lucide-react";
+import { FileText, Plus, MoreVertical, Edit, Trash2, Copy, LogOut, Loader2, BarChart3, Crown, Sparkles } from "lucide-react";
 
 const TEMPLATES = [
   { id: 1, name: "Modern Professional" },
@@ -107,6 +107,16 @@ export default function Dashboard() {
             <span className="font-bold text-sm">Fresher Resume Builder</span>
           </div>
           <div className="flex items-center gap-3">
+            {me.isPremium ? (
+              <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1">
+                <Crown className="w-3.5 h-3.5 text-yellow-600" />
+                <span className="text-xs font-semibold text-yellow-700">Premium</span>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" asChild className="hidden sm:flex border-blue-200 text-blue-600 hover:bg-blue-50">
+                <Link href="/upgrade"><Sparkles className="w-3.5 h-3.5 mr-1.5" />Upgrade</Link>
+              </Button>
+            )}
             <span className="text-sm text-muted-foreground hidden sm:block">Hi, <strong>{me.username}</strong></span>
             <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-logout">
               <LogOut className="w-4 h-4 mr-1" />Sign Out

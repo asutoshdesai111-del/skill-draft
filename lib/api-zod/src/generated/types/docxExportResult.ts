@@ -6,11 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  isPremium: boolean;
-  planType: string;
-  createdAt: string;
+export interface DocxExportResult {
+  docxBase64: string;
+  filename: string;
 }

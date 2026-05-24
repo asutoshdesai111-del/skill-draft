@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import {
-  useGetResume, useGetAtsScore, useExportResumePdf, useUpdateResume, useListTemplates,
+  useGetResume, useGetAtsScore, useExportResumePdf, useExportResumeDocx, useUpdateResume, useListTemplates,
   getGetResumeQueryKey, getGetAtsScoreQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ResumePreview from "@/components/resume-preview";
-import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, ChevronRight, Type } from "lucide-react";
+import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, ChevronRight, Type, FileText, FileCode, ChevronDown } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const TEMPLATE_COLORS: Record<number, string> = { 1: "#1e40af", 2: "#111827", 3: "#0d9488", 4: "#b45309", 5: "#374151" };
 
@@ -105,13 +108,17 @@ export default function Preview() {
   const { data: resumeDetail, isLoading } = useGetResume(resumeId, { query: { queryKey: getGetResumeQueryKey(resumeId), enabled: !!resumeId } });
   const { data: atsScore } = useGetAtsScore(resumeId, { query: { queryKey: getGetAtsScoreQueryKey(resumeId), enabled: !!resumeId } });
   const { data: templates } = useListTemplates();
-  const { refetch: refetchExport, isFetching: isExporting } = useExportResumePdf(resumeId, {
+  const { refetch: refetchHtml, isFetching: isExportingHtml } = useExportResumePdf(resumeId, {
     query: { enabled: false, queryKey: ["export-resume-pdf", resumeId] as const },
+  });
+  const { refetch: refetchDocx, isFetching: isExportingDocx } = useExportResumeDocx(resumeId, {
+    query: { enabled: false, queryKey: ["export-resume-docx", resumeId] as const },
   });
   const updateMutation = useUpdateResume();
 
   const [currentTemplateId, setCurrentTemplateId] = useState<number | null>(null);
   const [currentFont, setCurrentFont] = useState<string | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const templateId = currentTemplateId ?? resumeDetail?.resume?.templateId ?? 1;
   const fontFamily = currentFont ?? resumeDetail?.resume?.fontFamily ?? "Inter";
@@ -135,26 +142,68 @@ export default function Preview() {
     }
   };
 
-  const handleDownload = async () => {
+  const handleDownloadPdf = async () => {
+    const el = document.querySelector(".resume-preview") as HTMLElement;
+    if (!el) { toast({ title: "Preview not ready", variant: "destructive" }); return; }
+    setIsDownloadingPdf(true);
     try {
-      const { data: result } = await refetchExport();
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      const fileName = resumeDetail?.resume?.resumeName?.replace(/\s+/g, "_") || "Resume";
+      pdf.save(`${fileName}_Resume.pdf`);
+      toast({ title: "PDF downloaded successfully!" });
+    } catch (err) {
+      toast({ title: "PDF export failed", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    try {
+      const { data: result } = await refetchDocx();
       if (!result) return;
-      const byteChars = atob(result.pdfBase64);
-      const byteNums = new Array(byteChars.length);
+      const byteChars = atob(result.docxBase64);
+      const byteNums = new Uint8Array(byteChars.length);
       for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-      const byteArray = new Uint8Array(byteNums);
-      const blob = new Blob([byteArray], { type: "text/html" });
+      const blob = new Blob([byteNums], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = result.filename;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Resume downloaded!", description: "Open the HTML file in a browser and use Ctrl+P to print/save as PDF." });
+      toast({ title: "Word document downloaded!" });
     } catch {
-      toast({ title: "Export failed", variant: "destructive" });
+      toast({ title: "DOCX export failed", variant: "destructive" });
     }
   };
+
+  const handleDownloadHtml = async () => {
+    try {
+      const { data: result } = await refetchHtml();
+      if (!result) return;
+      const byteChars = atob(result.pdfBase64);
+      const byteNums = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([byteNums], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "HTML downloaded!", description: "Open in browser and press Ctrl+P to print as PDF." });
+    } catch {
+      toast({ title: "HTML export failed", variant: "destructive" });
+    }
+  };
+
+  const isAnyDownloading = isDownloadingPdf || isExportingDocx || isExportingHtml;
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
@@ -165,7 +214,6 @@ export default function Preview() {
   }
 
   const { resume, personalInfo, objective, education = [], skills = [], projects = [], experience = [], certifications = [], languages = [] } = resumeDetail;
-
   const data = { personalInfo, objective, education, skills, projects, experience, certifications, languages };
 
   return (
@@ -179,8 +227,8 @@ export default function Preview() {
           <span className="text-muted-foreground text-sm">/</span>
           <span className="font-semibold text-sm truncate">{resume.resumeName}</span>
           <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground hidden sm:block">Template:</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Template:</span>
               <Select value={String(templateId)} onValueChange={handleTemplateChange}>
                 <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-preview-template">
                   <SelectValue />
@@ -197,9 +245,46 @@ export default function Preview() {
                 </SelectContent>
               </Select>
             </div>
-            <Button size="sm" onClick={handleDownload} disabled={isExporting} data-testid="button-download-pdf">
-              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Download className="w-4 h-4 mr-1" />Download</>}
-            </Button>
+
+            {/* Download dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" disabled={isAnyDownloading} data-testid="button-download">
+                  {isAnyDownloading
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <><Download className="w-4 h-4 mr-1" />Download<ChevronDown className="w-3 h-3 ml-1" /></>}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={handleDownloadPdf} className="gap-3 cursor-pointer">
+                  <div className="w-7 h-7 bg-red-50 rounded flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-3.5 h-3.5 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">PDF Document</div>
+                    <div className="text-xs text-muted-foreground">High-quality .pdf file</div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadDocx} className="gap-3 cursor-pointer">
+                  <div className="w-7 h-7 bg-blue-50 rounded flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Word Document</div>
+                    <div className="text-xs text-muted-foreground">Editable .docx file</div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadHtml} className="gap-3 cursor-pointer">
+                  <div className="w-7 h-7 bg-gray-50 rounded flex items-center justify-center flex-shrink-0">
+                    <FileCode className="w-3.5 h-3.5 text-gray-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">HTML File</div>
+                    <div className="text-xs text-muted-foreground">Open in browser → Print</div>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -274,7 +359,7 @@ export default function Preview() {
             </CardContent>
           </Card>
 
-          {/* Next steps */}
+          {/* Sections completed */}
           <Card>
             <CardContent className="p-4 space-y-2">
               <p className="text-xs font-semibold text-muted-foreground mb-2">Sections Completed</p>
@@ -291,8 +376,7 @@ export default function Preview() {
                 <div key={label} className="flex items-center gap-2 text-xs">
                   {done
                     ? <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-                    : <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/40" />
-                  }
+                    : <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/40" />}
                   <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
                 </div>
               ))}

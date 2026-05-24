@@ -14,6 +14,7 @@ import ResetPassword from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import Builder from "@/pages/builder";
 import Preview from "@/pages/preview";
+import Upgrade from "@/pages/upgrade";
 
 setAuthTokenGetter(() => getToken());
 
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/builder/:resumeId" component={Builder} />
       <Route path="/builder/:resumeId/preview" component={Preview} />
+      <Route path="/upgrade" component={Upgrade} />
       <Route component={NotFound} />
     </Switch>
   );

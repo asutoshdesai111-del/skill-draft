@@ -105,6 +105,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/SuccessResponse"
 
+  /auth/upgrade:
+    post:
+      operationId: upgradePlan
+      tags: [auth]
+      summary: Upgrade to premium plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradeInput"
+      responses:
+        "200":
+          description: Plan upgraded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpgradeResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /auth/forgot-password:
     post:
       operationId: forgotPassword
@@ -173,6 +198,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /resumes/{resumeId}/export/docx:
+    get:
+      operationId: exportResumeDocx
+      tags: [export]
+      summary: Export resume as DOCX (Word document, returns base64)
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: DOCX export result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocxExportResult"
 
   # --- Resumes ---
   /resumes:
@@ -1053,6 +1097,36 @@ components:
       required:
         - success
 
+    UpgradeInput:
+      type: object
+      properties:
+        planType:
+          type: string
+      required:
+        - planType
+
+    UpgradeResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+      required:
+        - message
+        - user
+
+    DocxExportResult:
+      type: object
+      properties:
+        docxBase64:
+          type: string
+        filename:
+          type: string
+      required:
+        - docxBase64
+        - filename
+
     User:
       type: object
       properties:
@@ -1062,12 +1136,18 @@ components:
           type: string
         email:
           type: string
+        isPremium:
+          type: boolean
+        planType:
+          type: string
         createdAt:
           type: string
       required:
         - id
         - username
         - email
+        - isPremium
+        - planType
         - createdAt
 
     ForgotPasswordInput:

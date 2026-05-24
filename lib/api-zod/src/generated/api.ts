@@ -45,6 +45,8 @@ export const LoginResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "email": zod.string(),
+  "isPremium": zod.boolean(),
+  "planType": zod.string(),
   "createdAt": zod.string()
 }),
   "token": zod.string()
@@ -56,6 +58,26 @@ export const LoginResponse = zod.object({
  */
 export const LogoutResponse = zod.object({
   "success": zod.boolean()
+})
+
+
+/**
+ * @summary Upgrade to premium plan
+ */
+export const UpgradePlanBody = zod.object({
+  "planType": zod.string()
+})
+
+export const UpgradePlanResponse = zod.object({
+  "message": zod.string(),
+  "user": zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string(),
+  "isPremium": zod.boolean(),
+  "planType": zod.string(),
+  "createdAt": zod.string()
+})
 })
 
 
@@ -97,7 +119,22 @@ export const GetMeResponse = zod.object({
   "id": zod.number(),
   "username": zod.string(),
   "email": zod.string(),
+  "isPremium": zod.boolean(),
+  "planType": zod.string(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Export resume as DOCX (Word document, returns base64)
+ */
+export const ExportResumeDocxParams = zod.object({
+  "resumeId": zod.coerce.number()
+})
+
+export const ExportResumeDocxResponse = zod.object({
+  "docxBase64": zod.string(),
+  "filename": zod.string()
 })
 
 
