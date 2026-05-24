@@ -6,20 +6,20 @@ async function seed() {
   console.log("Seeding templates...");
 
   const templates = [
-    { id: 1, templateName: "Modern Professional", previewImage: null, description: "Clean blue accent design with sidebar — ideal for IT and engineering roles" },
-    { id: 2, templateName: "Minimalist", previewImage: null, description: "Black and white, ATS-optimized design for any industry" },
-    { id: 3, templateName: "Creative", previewImage: null, description: "Colorful gradient design — perfect for design, marketing, and media roles" },
-    { id: 4, templateName: "Corporate", previewImage: null, description: "Formal amber accent design — ideal for finance, banking, and business roles" },
-    { id: 5, templateName: "Technical", previewImage: null, description: "Code-style dark header design — perfect for CS and software engineering freshers" },
+    { templateName: "Modern Professional", templateStyle: "modern", colorScheme: "blue", fontFamily: "Arial", description: "Clean blue accent design with sidebar — ideal for IT and engineering roles" },
+    { templateName: "Minimalist", templateStyle: "minimalist", colorScheme: "grayscale", fontFamily: "Helvetica", description: "Black and white, ATS-optimized design for any industry" },
+    { templateName: "Creative", templateStyle: "creative", colorScheme: "gradient", fontFamily: "Georgia", description: "Colorful gradient design — perfect for design, marketing, and media roles" },
+    { templateName: "Corporate", templateStyle: "corporate", colorScheme: "amber", fontFamily: "Times New Roman", description: "Formal amber accent design — ideal for finance, banking, and business roles" },
+    { templateName: "Technical", templateStyle: "technical", colorScheme: "dark", fontFamily: "Courier New", description: "Code-style dark header design — perfect for CS and software engineering freshers" },
   ];
 
   for (const template of templates) {
-    const existing = await db.select().from(templatesTable).where(eq(templatesTable.id, template.id)).limit(1);
+    const existing = await db.select().from(templatesTable).where(eq(templatesTable.templateName, template.templateName)).limit(1);
     if (existing.length === 0) {
       await db.insert(templatesTable).values(template);
       console.log(`  Created template: ${template.templateName}`);
     } else {
-      await db.update(templatesTable).set({ templateName: template.templateName, description: template.description }).where(eq(templatesTable.id, template.id));
+      await db.update(templatesTable).set({ description: template.description }).where(eq(templatesTable.templateName, template.templateName));
       console.log(`  Updated template: ${template.templateName}`);
     }
   }

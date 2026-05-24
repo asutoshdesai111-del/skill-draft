@@ -66,9 +66,9 @@ export default function Login() {
             <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
               <FileText className="w-5 h-5 text-white" />
             </div>
-            <span className="text-white text-xl font-bold tracking-tight">Fresher Resume Builder</span>
+            <span className="text-white text-xl font-bold tracking-tight">SkillDraft</span>
           </div>
-          <p className="text-blue-200 text-sm mt-1">Your career starts with a great resume</p>
+          <p className="text-blue-200 text-sm mt-1">Draft your skills into a Resume</p>
         </div>
 
         {/* Center content */}
@@ -108,7 +108,7 @@ export default function Login() {
             style={{ background: "linear-gradient(135deg, #1e40af, #0d9488)" }}>
             <FileText className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-gray-900">Fresher Resume Builder</span>
+          <span className="font-bold text-gray-900">SkillDraft</span>
         </div>
 
         <div className="max-w-sm w-full mx-auto lg:mx-0">

@@ -2,7 +2,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { setAuthTokenGetter } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
 import { getToken } from "@/lib/auth";
 
 import NotFound from "@/pages/not-found";
@@ -17,6 +17,11 @@ import Preview from "@/pages/preview";
 import Upgrade from "@/pages/upgrade";
 
 setAuthTokenGetter(() => getToken());
+
+// Configure API base URL for development
+if (import.meta.env.DEV) {
+  setBaseUrl("http://localhost:8080");
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

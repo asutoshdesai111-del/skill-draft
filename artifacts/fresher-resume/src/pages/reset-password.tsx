@@ -105,8 +105,8 @@ export default function ResetPassword() {
           <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto">
             <FileText className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Fresher Resume Builder</h1>
-          <p className="text-blue-300 text-sm">Set a new password</p>
+          <h1 className="text-2xl font-bold text-white">SkillDraft</h1>
+          <p className="text-blue-300 text-sm">Draft your skills into a Resume</p>
         </div>
 
         <Card className="border-0 shadow-xl">

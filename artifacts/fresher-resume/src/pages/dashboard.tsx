@@ -110,7 +110,7 @@ export default function Dashboard() {
             <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
               <FileText className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-sm">Fresher Resume Builder</span>
+            <span className="font-bold text-sm">SkillDraft</span>
           </div>
           <div className="flex items-center gap-3">
             {me.isPremium ? (

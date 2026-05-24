@@ -75,7 +75,7 @@ function Receipt({ data, onDone }: { data: ReceiptData; onDone: () => void }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-white" />
-                <span className="text-white font-bold">Fresher Resume Builder</span>
+                <span className="text-white font-bold">SkillDraft</span>
               </div>
               <Badge className="bg-yellow-400 text-yellow-900 border-0 font-bold">
                 <Crown className="w-3 h-3 mr-1" />PREMIUM

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import {
   useGetResume, useGetAtsScore, useExportResumePdf, useExportResumeDocx, useUpdateResume, useListTemplates,
-  getGetResumeQueryKey, getGetAtsScoreQueryKey,
+  getGetResumeQueryKey, getGetAtsScoreQueryKey, getListTemplatesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -110,7 +110,7 @@ export default function Preview() {
 
   const { data: resumeDetail, isLoading } = useGetResume(resumeId, { query: { queryKey: getGetResumeQueryKey(resumeId), enabled: !!resumeId } });
   const { data: atsScore } = useGetAtsScore(resumeId, { query: { queryKey: getGetAtsScoreQueryKey(resumeId), enabled: !!resumeId } });
-  const { data: templates } = useListTemplates();
+  const { data: templates } = useListTemplates({ query: { queryKey: getListTemplatesQueryKey(), staleTime: 5 * 60 * 1000, gcTime: 10 * 60 * 1000 } });
   const { refetch: refetchHtml, isFetching: isExportingHtml } = useExportResumePdf(resumeId, {
     query: { enabled: false, queryKey: ["export-resume-pdf", resumeId] as const },
   });
@@ -237,7 +237,7 @@ export default function Preview() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(templates || [
+                  {(templates && templates.length > 0 ? templates : [
                     { id: 1, templateName: "Minimal ATS Resume" }, { id: 2, templateName: "Corporate Resume" },
                     { id: 3, templateName: "Creative Designer Resume" }, { id: 4, templateName: "Executive Resume" },
                     { id: 5, templateName: "Developer Resume" }, { id: 6, templateName: "Modern Gradient Resume" },

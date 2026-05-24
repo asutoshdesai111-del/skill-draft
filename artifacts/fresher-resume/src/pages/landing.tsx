@@ -39,7 +39,7 @@ export default function Landing() {
             <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
               <FileText className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-foreground text-sm">Fresher Resume Builder</span>
+            <span className="font-bold text-foreground text-sm">SkillDraft</span>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild><Link href="/login">Sign In</Link></Button>
@@ -156,7 +156,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t py-8 px-4 text-center text-muted-foreground text-sm">
-        <p>Fresher Resume Builder — Helping fresh graduates launch their careers</p>
+        <p>Made by Asutosh Desai — SkillDraft: Draft your skills into a Resume</p>
       </footer>
     </div>
   );
