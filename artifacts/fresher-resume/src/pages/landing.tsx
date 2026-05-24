@@ -73,7 +73,7 @@ export default function Landing() {
             </Button>
           </div>
           <div className="flex flex-wrap justify-center gap-4 text-sm text-blue-300 pt-2">
-            {["Free to use", "No credit card", "Instant download", "5 templates"].map(t => (
+            {["Free to use", "No credit card", "Instant download", "10 templates"].map(t => (
               <span key={t} className="flex items-center gap-1"><CheckCircle className="w-4 h-4" />{t}</span>
             ))}
           </div>

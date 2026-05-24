@@ -16,7 +16,10 @@ import { ArrowLeft, Download, Loader2, CheckCircle, AlertCircle, ChevronRight, T
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const TEMPLATE_COLORS: Record<number, string> = { 1: "#1e40af", 2: "#111827", 3: "#0d9488", 4: "#b45309", 5: "#374151" };
+const TEMPLATE_COLORS: Record<number, string> = {
+  1: "#111827", 2: "#003366", 3: "#7C3AED", 4: "#1C2B3A", 5: "#0D1117",
+  6: "#4F46E5", 7: "#0f172a", 8: "#6366F1", 9: "#8B6914", 10: "#F97316",
+};
 
 const FONT_OPTIONS = [
   { value: "Inter", label: "Inter", style: "Inter, sans-serif" },
@@ -234,7 +237,13 @@ export default function Preview() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(templates || [{ id: 1, templateName: "Modern Professional" }, { id: 2, templateName: "Minimalist" }, { id: 3, templateName: "Creative" }, { id: 4, templateName: "Corporate" }, { id: 5, templateName: "Technical" }]).map(t => (
+                  {(templates || [
+                    { id: 1, templateName: "Minimal ATS Resume" }, { id: 2, templateName: "Corporate Resume" },
+                    { id: 3, templateName: "Creative Designer Resume" }, { id: 4, templateName: "Executive Resume" },
+                    { id: 5, templateName: "Developer Resume" }, { id: 6, templateName: "Modern Gradient Resume" },
+                    { id: 7, templateName: "Dark Theme Resume" }, { id: 8, templateName: "Infographic Resume" },
+                    { id: 9, templateName: "Elegant Professional" }, { id: 10, templateName: "Startup Founder Resume" },
+                  ]).map(t => (
                     <SelectItem key={t.id} value={String(t.id)}>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: TEMPLATE_COLORS[t.id] || "#111" }} />

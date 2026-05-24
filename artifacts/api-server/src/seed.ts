@@ -6,11 +6,16 @@ async function seed() {
   console.log("Seeding templates...");
 
   const templates = [
-    { id: 1, templateName: "Modern Professional", templateStyle: "modern", colorScheme: "blue", fontFamily: "Inter", description: "Clean blue accent with sidebar — ideal for IT roles" },
-    { id: 2, templateName: "Minimalist", templateStyle: "minimalist", colorScheme: "black", fontFamily: "Inter", description: "Black & white, ATS-optimized for any industry" },
-    { id: 3, templateName: "Creative", templateStyle: "creative", colorScheme: "teal", fontFamily: "Inter", description: "Colorful gradient for design & marketing roles" },
-    { id: 4, templateName: "Corporate", templateStyle: "corporate", colorScheme: "amber", fontFamily: "Inter", description: "Formal amber design for finance & business" },
-    { id: 5, templateName: "Technical", templateStyle: "technical", colorScheme: "slate", fontFamily: "Courier New", description: "Code-style design for CS freshers" },
+    { id: 1,  templateName: "Minimal ATS Resume",      templateStyle: "minimal-ats",     colorScheme: "black",    fontFamily: "Georgia",     description: "Clean serif, single-column — maximum ATS compatibility" },
+    { id: 2,  templateName: "Corporate Resume",         templateStyle: "corporate-v2",    colorScheme: "navy",     fontFamily: "Calibri",     description: "Navy blue header, two-column — finance & consulting" },
+    { id: 3,  templateName: "Creative Designer Resume", templateStyle: "creative-design", colorScheme: "purple",   fontFamily: "Montserrat",  description: "Purple gradient sidebar — design, marketing, UX roles" },
+    { id: 4,  templateName: "Executive Resume",         templateStyle: "executive",       colorScheme: "charcoal", fontFamily: "Georgia",     description: "Dark charcoal + gold — senior leadership roles" },
+    { id: 5,  templateName: "Developer Resume",         templateStyle: "developer",       colorScheme: "dark",     fontFamily: "Courier New", description: "GitHub-inspired dark header — CS & engineering" },
+    { id: 6,  templateName: "Modern Gradient Resume",   templateStyle: "gradient",        colorScheme: "indigo",   fontFamily: "Inter",       description: "Indigo gradient, card sections — modern tech roles" },
+    { id: 7,  templateName: "Dark Theme Resume",        templateStyle: "dark-theme",      colorScheme: "slate",    fontFamily: "Inter",       description: "Full dark UI with teal accent — bold, modern" },
+    { id: 8,  templateName: "Infographic Resume",       templateStyle: "infographic",     colorScheme: "violet",   fontFamily: "Inter",       description: "Visual timeline, progress bars — eye-catching" },
+    { id: 9,  templateName: "Elegant Professional",     templateStyle: "elegant",         colorScheme: "cream",    fontFamily: "Georgia",     description: "Cream background, ornamental serif — classic premium" },
+    { id: 10, templateName: "Startup Founder Resume",   templateStyle: "startup",         colorScheme: "orange",   fontFamily: "Inter",       description: "Bold orange, dynamic layout — entrepreneurs & founders" },
   ];
 
   for (const t of templates) {
@@ -19,7 +24,7 @@ async function seed() {
       await db.insert(templatesTable).values(t);
       console.log(`  Created: ${t.templateName}`);
     } else {
-      await db.update(templatesTable).set({ templateName: t.templateName }).where(eq(templatesTable.id, t.id));
+      await db.update(templatesTable).set({ templateName: t.templateName, templateStyle: t.templateStyle, colorScheme: t.colorScheme, description: t.description }).where(eq(templatesTable.id, t.id));
       console.log(`  Updated: ${t.templateName}`);
     }
   }

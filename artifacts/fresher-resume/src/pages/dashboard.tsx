@@ -15,15 +15,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Plus, MoreVertical, Edit, Trash2, Copy, LogOut, Loader2, BarChart3, Crown, Sparkles } from "lucide-react";
 
 const TEMPLATES = [
-  { id: 1, name: "Modern Professional" },
-  { id: 2, name: "Minimalist" },
-  { id: 3, name: "Creative" },
-  { id: 4, name: "Corporate" },
-  { id: 5, name: "Technical" },
+  { id: 1,  name: "Minimal ATS Resume" },
+  { id: 2,  name: "Corporate Resume" },
+  { id: 3,  name: "Creative Designer" },
+  { id: 4,  name: "Executive Resume" },
+  { id: 5,  name: "Developer Resume" },
+  { id: 6,  name: "Modern Gradient" },
+  { id: 7,  name: "Dark Theme" },
+  { id: 8,  name: "Infographic" },
+  { id: 9,  name: "Elegant Professional" },
+  { id: 10, name: "Startup Founder" },
 ];
 
 const TEMPLATE_COLORS: Record<number, string> = {
-  1: "#1e40af", 2: "#111827", 3: "#0d9488", 4: "#b45309", 5: "#374151"
+  1: "#111827", 2: "#003366", 3: "#7C3AED", 4: "#1C2B3A", 5: "#0D1117",
+  6: "#4F46E5", 7: "#0f172a", 8: "#6366F1", 9: "#8B6914", 10: "#F97316",
 };
 
 export default function Dashboard() {
@@ -47,7 +53,7 @@ export default function Dashboard() {
   }
 
   if (!me) {
-    setLocation("/login");
+    queueMicrotask(() => setLocation("/login"));
     return null;
   }
 
