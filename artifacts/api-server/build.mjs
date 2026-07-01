@@ -29,6 +29,11 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // pdf-parse pulls in pdfjs-dist, which resolves worker/font assets via
+      // relative paths at runtime — those break once inlined into a single
+      // bundled file, so this stays a real node_modules import instead.
+      "pdf-parse",
+      "pdfjs-dist",
       "sharp",
       "better-sqlite3",
       "sqlite3",

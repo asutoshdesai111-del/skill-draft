@@ -15,6 +15,15 @@ import Dashboard from "@/pages/dashboard";
 import Builder from "@/pages/builder";
 import Preview from "@/pages/preview";
 import Upgrade from "@/pages/upgrade";
+import ImportReview from "@/pages/import-review";
+import CareerHub from "@/pages/career/index";
+import Analytics from "@/pages/career/analytics";
+import ResumeReview from "@/pages/career/review";
+import JobMatch from "@/pages/career/job-match";
+import SkillGap from "@/pages/career/skill-gap";
+import ThemeRecommend from "@/pages/career/theme-recommend";
+import InterviewPrep from "@/pages/career/interview-prep";
+import MockInterview from "@/pages/career/mock-interview";
 
 setAuthTokenGetter(() => getToken());
 
@@ -41,9 +50,18 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/import-review" component={ImportReview} />
       <Route path="/builder/:resumeId" component={Builder} />
       <Route path="/builder/:resumeId/preview" component={Preview} />
       <Route path="/upgrade" component={Upgrade} />
+      <Route path="/career" component={CareerHub} />
+      <Route path="/career/analytics" component={Analytics} />
+      <Route path="/career/review" component={ResumeReview} />
+      <Route path="/career/job-match" component={JobMatch} />
+      <Route path="/career/skill-gap" component={SkillGap} />
+      <Route path="/career/theme" component={ThemeRecommend} />
+      <Route path="/career/interview-prep" component={InterviewPrep} />
+      <Route path="/career/mock-interview" component={MockInterview} />
       <Route component={NotFound} />
     </Switch>
   );

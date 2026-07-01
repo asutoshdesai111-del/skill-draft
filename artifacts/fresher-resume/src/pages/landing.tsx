@@ -1,8 +1,12 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, FileText, Download, Eye, Star, Zap, Shield, Users } from "lucide-react";
+import ResumePreview from "@/components/resume-preview";
+
+const RESUME_WIDTH = 794;
 
 const FEATURES = [
   { icon: FileText, title: "8-Step Guided Wizard", desc: "Step-by-step form covering every section of a professional resume." },
@@ -14,12 +18,78 @@ const FEATURES = [
 ];
 
 const TEMPLATES = [
-  { name: "Modern", color: "#1e40af", desc: "Clean blue accent — ideal for IT roles" },
-  { name: "Minimalist", color: "#111827", desc: "Black & white — ATS optimized" },
-  { name: "Creative", color: "#0d9488", desc: "Colorful — for design/marketing roles" },
-  { name: "Corporate", color: "#b45309", desc: "Formal — for finance/business roles" },
-  { name: "Technical", color: "#374151", desc: "Code-style — for CS freshers" },
+  { id: 6, name: "Modern", desc: "Clean gradient accent — ideal for IT roles" },
+  { id: 1, name: "Minimalist", desc: "Black & white — ATS optimized" },
+  { id: 3, name: "Creative", desc: "Colorful — for design/marketing roles" },
+  { id: 2, name: "Corporate", desc: "Formal — for finance/business roles" },
+  { id: 5, name: "Technical", desc: "Code-style — for CS freshers" },
 ];
+
+const SAMPLE_RESUME = {
+  personalInfo: {
+    id: 1, resumeId: 1,
+    fullName: "Aarav Sharma",
+    email: "aarav.sharma@email.com",
+    phone: "+91 98765 43210",
+    linkedin: "linkedin.com/in/aaravsharma",
+    portfolio: "aaravsharma.dev",
+    address: "Bengaluru, India",
+  },
+  objective: {
+    id: 1, resumeId: 1,
+    summaryText: "Motivated Computer Science graduate seeking an entry-level software engineering role to apply strong problem-solving and full-stack development skills.",
+  },
+  education: [
+    { id: 1, resumeId: 1, institution: "Indian Institute of Technology", degree: "B.Tech", fieldOfStudy: "Computer Science", graduationYear: 2026, cgpa: "8.7" },
+  ],
+  skills: [
+    { id: 1, resumeId: 1, skillName: "JavaScript", proficiencyLevel: "Advanced" as const },
+    { id: 2, resumeId: 1, skillName: "React", proficiencyLevel: "Advanced" as const },
+    { id: 3, resumeId: 1, skillName: "Python", proficiencyLevel: "Intermediate" as const },
+    { id: 4, resumeId: 1, skillName: "SQL", proficiencyLevel: "Intermediate" as const },
+  ],
+  projects: [
+    { id: 1, resumeId: 1, projectTitle: "Smart Attendance System", description: "Built a facial-recognition attendance app used by 500+ students across campus.", technologies: "Python, OpenCV, Flask", projectLink: "github.com/aarav/attendance", role: "Lead Developer" },
+  ],
+  experience: [
+    { id: 1, resumeId: 1, company: "TechNova Labs", position: "Software Engineering Intern", startDate: "May 2025", endDate: "Jul 2025", isCurrent: false, responsibilities: "Built and shipped internal tooling used by 3 product teams." },
+  ],
+  certifications: [
+    { id: 1, resumeId: 1, certName: "AWS Certified Cloud Practitioner", issuingOrg: "Amazon Web Services", dateIssued: "2025", description: null },
+  ],
+  languages: [
+    { id: 1, resumeId: 1, languageName: "English", proficiency: "Fluent" as const },
+  ],
+};
+
+function TemplateThumb({ id }: { id: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setScale(el.offsetWidth / RESUME_WIDTH);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="aspect-[4/5] bg-white overflow-hidden relative">
+      {scale > 0 && (
+        <div
+          className="absolute top-0 left-0 origin-top-left"
+          style={{ width: RESUME_WIDTH, transform: `scale(${scale})`, pointerEvents: "none" }}
+          aria-hidden="true"
+        >
+          <ResumePreview data={SAMPLE_RESUME} templateId={id} resumeName="Aarav Sharma" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 const TIPS = [
   "Keep your resume to 1 page for freshers",
@@ -109,11 +179,9 @@ export default function Landing() {
             <p className="text-muted-foreground">Switch between templates instantly — no re-entering data</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {TEMPLATES.map(({ name, color, desc }) => (
+            {TEMPLATES.map(({ id, name, desc }) => (
               <Card key={name} className="border overflow-hidden hover:shadow-md transition-shadow group">
-                <div className="h-28 flex items-center justify-center" style={{ backgroundColor: color }}>
-                  <FileText className="w-8 h-8 text-white opacity-80 group-hover:scale-110 transition-transform" />
-                </div>
+                <TemplateThumb id={id} />
                 <CardContent className="p-3">
                   <p className="font-semibold text-sm">{name}</p>
                   <p className="text-xs text-muted-foreground">{desc}</p>

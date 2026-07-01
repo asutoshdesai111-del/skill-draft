@@ -51,11 +51,11 @@ const GRAD_YEARS = Array.from({ length: 7 }, (_, i) => 2020 + i);
 
 // ─── Personal Info ──────────────────────────────────────────────────────────────
 const personalSchema = z.object({
-  fullName: z.string().min(2, "Full name required"),
+  fullName: z.string().min(2, "Full name required").max(80, "Keep it under 80 characters"),
   email: z.string().email("Valid email required"),
-  phone: z.string().min(7, "Phone required"),
-  linkedin: z.string().optional(),
-  portfolio: z.string().optional(),
+  phone: z.string().regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+  linkedin: z.string().optional().refine(v => !v || /^(https?:\/\/)?([\w-]+\.)*linkedin\.com\/.+/i.test(v), "Enter a valid LinkedIn URL"),
+  portfolio: z.string().optional().refine(v => !v || /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/.*)?$/i.test(v), "Enter a valid URL"),
   address: z.string().optional(),
   photoUrl: z.string().optional(),
 });
@@ -97,7 +97,13 @@ function StepPersonal({ resumeId, initialData, onSaved }: { resumeId: number; in
         </div>
         <div className="space-y-1.5">
           <Label>Phone *</Label>
-          <Input placeholder="+91 98765 43210" data-testid="input-phone" {...register("phone")} />
+          <Input
+            placeholder="9876543210"
+            inputMode="numeric"
+            maxLength={10}
+            data-testid="input-phone"
+            {...register("phone", { onChange: e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10); } })}
+          />
           {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
         </div>
         <div className="space-y-1.5">
@@ -107,10 +113,12 @@ function StepPersonal({ resumeId, initialData, onSaved }: { resumeId: number; in
         <div className="space-y-1.5">
           <Label>LinkedIn URL</Label>
           <Input placeholder="linkedin.com/in/rahul-sharma" {...register("linkedin")} />
+          {errors.linkedin && <p className="text-xs text-destructive">{errors.linkedin.message}</p>}
         </div>
         <div className="space-y-1.5">
           <Label>Portfolio / GitHub URL</Label>
           <Input placeholder="github.com/rahulsharma" {...register("portfolio")} />
+          {errors.portfolio && <p className="text-xs text-destructive">{errors.portfolio.message}</p>}
         </div>
       </div>
       <Button type="submit" disabled={mutation.isPending} data-testid="button-save-personal">
@@ -122,17 +130,25 @@ function StepPersonal({ resumeId, initialData, onSaved }: { resumeId: number; in
 }
 
 // ─── Career Objective ───────────────────────────────────────────────────────────
+const objectiveSchema = z.object({
+  summaryText: z.string().min(20, "Write at least 20 characters").max(500, "Keep it under 500 characters"),
+});
+type ObjectiveForm = z.infer<typeof objectiveSchema>;
+
 function StepObjective({ resumeId, initialData, onSaved }: { resumeId: number; initialData?: { summaryText: string } | null; onSaved: () => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const mutation = useUpsertObjective();
-  const [text, setText] = useState(initialData?.summaryText || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!text.trim()) { toast({ title: "Please enter a career objective", variant: "destructive" }); return; }
-    mutation.mutate({ resumeId, data: { summaryText: text } }, {
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ObjectiveForm>({
+    resolver: zodResolver(objectiveSchema),
+    defaultValues: { summaryText: initialData?.summaryText || "" },
+  });
+  const text = watch("summaryText", "");
+
+  const onSubmit = (data: ObjectiveForm) => {
+    mutation.mutate({ resumeId, data: { summaryText: data.summaryText } }, {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getGetObjectiveQueryKey(resumeId) });
         toast({ title: "Objective saved" });
@@ -143,7 +159,7 @@ function StepObjective({ resumeId, initialData, onSaved }: { resumeId: number; i
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <Label>Career Objective / Professional Summary *</Label>
@@ -157,7 +173,7 @@ function StepObjective({ resumeId, initialData, onSaved }: { resumeId: number; i
               <p className="text-xs font-semibold text-muted-foreground">Click to use a suggestion:</p>
               {OBJECTIVE_SUGGESTIONS.map((s, i) => (
                 <div key={i} className="text-xs text-muted-foreground p-2 bg-muted rounded cursor-pointer hover:bg-accent/20 transition-colors"
-                  onClick={() => { setText(s); setShowSuggestions(false); }}>
+                  onClick={() => { setValue("summaryText", s, { shouldValidate: true }); setShowSuggestions(false); }}>
                   {s}
                 </div>
               ))}
@@ -166,12 +182,16 @@ function StepObjective({ resumeId, initialData, onSaved }: { resumeId: number; i
         )}
         <Textarea
           placeholder="Write a 2-3 sentence summary about your career goals, key skills, and what you're looking for..."
-          value={text}
-          onChange={e => setText(e.target.value.slice(0, 500))}
           rows={5}
+          maxLength={500}
+          aria-invalid={!!errors.summaryText}
+          {...register("summaryText")}
           data-testid="textarea-objective"
         />
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          {errors.summaryText
+            ? <p className="text-xs text-destructive">{errors.summaryText.message}</p>
+            : <span />}
           <span className={`text-xs ${text.length >= 450 ? "text-amber-500" : "text-muted-foreground"}`}>{text.length}/500</span>
         </div>
       </div>
@@ -189,7 +209,7 @@ const eduSchema = z.object({
   degree: z.string().min(2, "Degree required"),
   fieldOfStudy: z.string().min(2, "Field required"),
   graduationYear: z.coerce.number().min(2020).max(2026),
-  cgpa: z.string().min(1, "CGPA required"),
+  cgpa: z.string().min(1, "CGPA required").regex(/^\d{1,2}(\.\d{1,2})?%?$/, "Enter a valid CGPA or percentage (e.g. 8.5 or 85%)"),
 });
 type EduForm = z.infer<typeof eduSchema>;
 
@@ -234,10 +254,12 @@ function EduEntry({ resumeId, edu, onDelete }: { resumeId: number; edu: EduForm 
             <div className="space-y-1">
               <Label className="text-xs">Degree *</Label>
               <Input placeholder="B.Tech / BCA / MCA" {...register("degree")} className="h-8 text-sm" />
+              {errors.degree && <p className="text-xs text-destructive">{errors.degree.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Field of Study *</Label>
               <Input placeholder="Computer Science" {...register("fieldOfStudy")} className="h-8 text-sm" />
+              {errors.fieldOfStudy && <p className="text-xs text-destructive">{errors.fieldOfStudy.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Year of Graduation *</Label>
@@ -248,6 +270,7 @@ function EduEntry({ resumeId, edu, onDelete }: { resumeId: number; edu: EduForm 
             <div className="space-y-1">
               <Label className="text-xs">CGPA / Percentage *</Label>
               <Input placeholder="8.5 / 85%" {...register("cgpa")} className="h-8 text-sm" />
+              {errors.cgpa && <p className="text-xs text-destructive">{errors.cgpa.message}</p>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -306,11 +329,18 @@ function StepSkills({ resumeId, onSaved }: { resumeId: number; onSaved: () => vo
   const create = useCreateSkill();
   const del = useDeleteSkill();
   const [skillName, setSkillName] = useState("");
+  const [skillError, setSkillError] = useState<string | null>(null);
   const [proficiency, setProficiency] = useState<"Beginner" | "Intermediate" | "Advanced" | "Expert">("Intermediate");
 
   const addSkill = () => {
-    if (!skillName.trim()) return;
-    create.mutate({ resumeId, data: { skillName: skillName.trim(), proficiencyLevel: proficiency } }, {
+    const trimmed = skillName.trim();
+    if (!trimmed) return;
+    if (skills.some(s => s.skillName.toLowerCase() === trimmed.toLowerCase())) {
+      setSkillError("This skill is already added");
+      return;
+    }
+    setSkillError(null);
+    create.mutate({ resumeId, data: { skillName: trimmed, proficiencyLevel: proficiency } }, {
       onSuccess: () => { qc.invalidateQueries({ queryKey: getListSkillsQueryKey(resumeId) }); setSkillName(""); },
       onError: () => toast({ title: "Failed to add skill", variant: "destructive" }),
     });
@@ -355,9 +385,13 @@ function StepSkills({ resumeId, onSaved }: { resumeId: number; onSaved: () => vo
       <div className="flex gap-2 items-end">
         <div className="space-y-1 flex-1">
           <Label className="text-xs">Skill Name</Label>
-          <Input value={skillName} onChange={e => setSkillName(e.target.value)} placeholder="e.g. React, Python, SQL..."
+          <Input value={skillName} onChange={e => { setSkillName(e.target.value); setSkillError(null); }} placeholder="e.g. React, Python, SQL..."
+            maxLength={40}
+            aria-invalid={!!skillError}
+            className={skillError ? "border-destructive focus-visible:ring-destructive" : ""}
             onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addSkill())}
             data-testid="input-skill-name" />
+          {skillError && <p className="text-xs text-destructive mt-1">{skillError}</p>}
         </div>
         <div className="space-y-1 w-36">
           <Label className="text-xs">Proficiency</Label>
@@ -368,7 +402,7 @@ function StepSkills({ resumeId, onSaved }: { resumeId: number; onSaved: () => vo
             </SelectContent>
           </Select>
         </div>
-        <Button type="button" onClick={addSkill} disabled={create.isPending} className="h-9" data-testid="button-add-skill">
+        <Button type="button" onClick={addSkill} disabled={create.isPending || !skillName.trim()} className="h-9" data-testid="button-add-skill">
           <Plus className="w-4 h-4" />
         </Button>
       </div>
@@ -401,9 +435,9 @@ function StepSkills({ resumeId, onSaved }: { resumeId: number; onSaved: () => vo
 // ─── Projects ────────────────────────────────────────────────────────────────────
 const projectSchema = z.object({
   projectTitle: z.string().min(2, "Title required"),
-  description: z.string().min(5, "Description required"),
+  description: z.string().min(5, "Description required").max(300, "Keep it under 300 characters"),
   technologies: z.string().min(2, "Technologies required"),
-  projectLink: z.string().optional(),
+  projectLink: z.string().optional().refine(v => !v || /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/.*)?$/i.test(v), "Enter a valid URL"),
   role: z.string().optional(),
 });
 type ProjectForm = z.infer<typeof projectSchema>;
@@ -413,7 +447,10 @@ function ProjectEntry({ resumeId, project, onDelete }: { resumeId: number; proje
   const { toast } = useToast();
   const update = useUpdateProject();
   const del = useDeleteProject();
-  const { register, handleSubmit, watch } = useForm<ProjectForm>({ defaultValues: { ...project } });
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<ProjectForm>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: { ...project },
+  });
   const descLen = watch("description", "").length;
   const [saved, setSaved] = useState(false);
 
@@ -432,10 +469,12 @@ function ProjectEntry({ resumeId, project, onDelete }: { resumeId: number; proje
             <div className="space-y-1">
               <Label className="text-xs">Project Title *</Label>
               <Input placeholder="E-commerce Website" {...register("projectTitle")} className="h-8 text-sm" />
+              {errors.projectTitle && <p className="text-xs text-destructive">{errors.projectTitle.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Technologies Used *</Label>
               <Input placeholder="React, Node.js, MongoDB" {...register("technologies")} className="h-8 text-sm" />
+              {errors.technologies && <p className="text-xs text-destructive">{errors.technologies.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Your Role</Label>
@@ -444,6 +483,7 @@ function ProjectEntry({ resumeId, project, onDelete }: { resumeId: number; proje
             <div className="space-y-1">
               <Label className="text-xs">Project Link</Label>
               <Input placeholder="https://github.com/..." {...register("projectLink")} className="h-8 text-sm" />
+              {errors.projectLink && <p className="text-xs text-destructive">{errors.projectLink.message}</p>}
             </div>
             <div className="space-y-1 sm:col-span-2">
               <div className="flex justify-between">
@@ -451,6 +491,7 @@ function ProjectEntry({ resumeId, project, onDelete }: { resumeId: number; proje
                 <span className={`text-xs ${descLen > 270 ? "text-amber-500" : "text-muted-foreground"}`}>{descLen}/300</span>
               </div>
               <Textarea placeholder="Brief description of what you built and its impact..." {...register("description")} rows={2} className="text-sm resize-none" maxLength={300} />
+              {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -503,6 +544,9 @@ const expSchema = z.object({
   endDate: z.string().optional(),
   isCurrent: z.boolean().default(false),
   responsibilities: z.string().min(5, "Responsibilities required"),
+}).refine(d => d.isCurrent || !!d.endDate?.trim(), {
+  message: "End date required (or mark as current)",
+  path: ["endDate"],
 });
 type ExpForm = z.infer<typeof expSchema>;
 
@@ -511,7 +555,10 @@ function ExpEntry({ resumeId, exp, onDelete }: { resumeId: number; exp: ExpForm 
   const { toast } = useToast();
   const update = useUpdateExperience();
   const del = useDeleteExperience();
-  const { register, handleSubmit, watch, setValue } = useForm<ExpForm>({ defaultValues: { ...exp, isCurrent: exp.isCurrent || false } });
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ExpForm>({
+    resolver: zodResolver(expSchema),
+    defaultValues: { ...exp, isCurrent: exp.isCurrent || false },
+  });
   const isCurrent = watch("isCurrent");
   const [saved, setSaved] = useState(false);
 
@@ -530,14 +577,17 @@ function ExpEntry({ resumeId, exp, onDelete }: { resumeId: number; exp: ExpForm 
             <div className="space-y-1">
               <Label className="text-xs">Company / Organization *</Label>
               <Input placeholder="Google, TCS, Startup Inc." {...register("company")} className="h-8 text-sm" />
+              {errors.company && <p className="text-xs text-destructive">{errors.company.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Position / Role *</Label>
               <Input placeholder="Software Developer Intern" {...register("position")} className="h-8 text-sm" />
+              {errors.position && <p className="text-xs text-destructive">{errors.position.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Start Date *</Label>
               <Input placeholder="June 2023" {...register("startDate")} className="h-8 text-sm" />
+              {errors.startDate && <p className="text-xs text-destructive">{errors.startDate.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">End Date</Label>
@@ -546,10 +596,12 @@ function ExpEntry({ resumeId, exp, onDelete }: { resumeId: number; exp: ExpForm 
                 <Checkbox id={`current-${exp.id}`} checked={isCurrent} onCheckedChange={v => setValue("isCurrent", Boolean(v))} />
                 <label htmlFor={`current-${exp.id}`} className="text-xs text-muted-foreground cursor-pointer">Currently working here</label>
               </div>
+              {errors.endDate && <p className="text-xs text-destructive">{errors.endDate.message}</p>}
             </div>
             <div className="space-y-1 sm:col-span-2">
               <Label className="text-xs">Key Responsibilities *</Label>
               <Textarea placeholder="Describe your key contributions and achievements..." {...register("responsibilities")} rows={2} className="text-sm resize-none" />
+              {errors.responsibilities && <p className="text-xs text-destructive">{errors.responsibilities.message}</p>}
             </div>
           </div>
           <div className="flex gap-2">
@@ -603,11 +655,18 @@ function StepCertifications({ resumeId, onSaved }: { resumeId: number; onSaved: 
   const update = useUpdateCertification();
   const del = useDeleteCertification();
   const [form, setForm] = useState({ certName: "", issuingOrg: "", dateIssued: "", description: "" });
+  const [certNameTouched, setCertNameTouched] = useState(false);
+  const certNameError = !form.certName.trim()
+    ? "Certification name is required"
+    : certs.some(c => c.certName.toLowerCase() === form.certName.trim().toLowerCase())
+      ? "This certification is already added"
+      : null;
 
   const addCert = () => {
-    if (!form.certName.trim()) return;
-    create.mutate({ resumeId, data: { ...form } }, {
-      onSuccess: () => { qc.invalidateQueries({ queryKey: getListCertificationsQueryKey(resumeId) }); setForm({ certName: "", issuingOrg: "", dateIssued: "", description: "" }); },
+    setCertNameTouched(true);
+    if (certNameError) return;
+    create.mutate({ resumeId, data: { ...form, certName: form.certName.trim() } }, {
+      onSuccess: () => { qc.invalidateQueries({ queryKey: getListCertificationsQueryKey(resumeId) }); setForm({ certName: "", issuingOrg: "", dateIssued: "", description: "" }); setCertNameTouched(false); },
       onError: () => toast({ title: "Failed to add", variant: "destructive" }),
     });
   };
@@ -635,18 +694,19 @@ function StepCertifications({ resumeId, onSaved }: { resumeId: number; onSaved: 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Name *</Label>
-              <Input placeholder="AWS Cloud Practitioner" value={form.certName} onChange={e => setForm(f => ({ ...f, certName: e.target.value }))} className="h-8 text-sm" data-testid="input-cert-name" />
+              <Input placeholder="AWS Cloud Practitioner" value={form.certName} onChange={e => setForm(f => ({ ...f, certName: e.target.value }))} onBlur={() => setCertNameTouched(true)} maxLength={80} className="h-8 text-sm" data-testid="input-cert-name" />
+              {certNameTouched && certNameError && <p className="text-xs text-destructive">{certNameError}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Issuing Organization</Label>
-              <Input placeholder="Amazon, Coursera, NPTEL..." value={form.issuingOrg} onChange={e => setForm(f => ({ ...f, issuingOrg: e.target.value }))} className="h-8 text-sm" />
+              <Input placeholder="Amazon, Coursera, NPTEL..." value={form.issuingOrg} onChange={e => setForm(f => ({ ...f, issuingOrg: e.target.value }))} maxLength={80} className="h-8 text-sm" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Date Issued</Label>
-              <Input placeholder="March 2024" value={form.dateIssued} onChange={e => setForm(f => ({ ...f, dateIssued: e.target.value }))} className="h-8 text-sm" />
+              <Input placeholder="March 2024" value={form.dateIssued} onChange={e => setForm(f => ({ ...f, dateIssued: e.target.value }))} maxLength={30} className="h-8 text-sm" />
             </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={addCert} disabled={create.isPending || !form.certName}>
+          <Button type="button" variant="outline" size="sm" onClick={addCert} disabled={create.isPending || !form.certName.trim()}>
             <Plus className="w-3.5 h-3.5 mr-1" />Add
           </Button>
         </CardContent>
@@ -667,11 +727,18 @@ function StepLanguages({ resumeId, onSaved }: { resumeId: number; onSaved: () =>
   const create = useCreateLanguage();
   const del = useDeleteLanguage();
   const [langName, setLangName] = useState("");
+  const [langError, setLangError] = useState<string | null>(null);
   const [proficiency, setProficiency] = useState<"Native" | "Fluent" | "Intermediate" | "Basic">("Intermediate");
 
   const addLang = () => {
-    if (!langName.trim()) return;
-    create.mutate({ resumeId, data: { languageName: langName.trim(), proficiency } }, {
+    const trimmed = langName.trim();
+    if (!trimmed) return;
+    if (langs.some(l => l.languageName.toLowerCase() === trimmed.toLowerCase())) {
+      setLangError("This language is already added");
+      return;
+    }
+    setLangError(null);
+    create.mutate({ resumeId, data: { languageName: trimmed, proficiency } }, {
       onSuccess: () => { qc.invalidateQueries({ queryKey: getListLanguagesQueryKey(resumeId) }); setLangName(""); },
       onError: () => toast({ title: "Failed to add", variant: "destructive" }),
     });
@@ -694,7 +761,11 @@ function StepLanguages({ resumeId, onSaved }: { resumeId: number; onSaved: () =>
       <div className="flex gap-2 items-end">
         <div className="space-y-1 flex-1">
           <Label className="text-xs">Language</Label>
-          <Input value={langName} onChange={e => setLangName(e.target.value)} placeholder="English, Hindi, Tamil..." className="h-9" onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addLang())} data-testid="input-language-name" />
+          <Input value={langName} onChange={e => { setLangName(e.target.value); setLangError(null); }} placeholder="English, Hindi, Tamil..." maxLength={40}
+            aria-invalid={!!langError}
+            className={`h-9 ${langError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addLang())} data-testid="input-language-name" />
+          {langError && <p className="text-xs text-destructive mt-1">{langError}</p>}
         </div>
         <div className="space-y-1 w-36">
           <Label className="text-xs">Proficiency</Label>
@@ -705,7 +776,7 @@ function StepLanguages({ resumeId, onSaved }: { resumeId: number; onSaved: () =>
             </SelectContent>
           </Select>
         </div>
-        <Button type="button" onClick={addLang} disabled={create.isPending} className="h-9" data-testid="button-add-language">
+        <Button type="button" onClick={addLang} disabled={create.isPending || !langName.trim()} className="h-9" data-testid="button-add-language">
           <Plus className="w-4 h-4" />
         </Button>
       </div>

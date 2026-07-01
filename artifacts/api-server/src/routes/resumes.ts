@@ -1,11 +1,31 @@
 import { Router } from "express";
-import { db, resumesTable, personalInfoTable, careerObjectiveTable, educationTable, skillsTable, projectsTable, experienceTable, certificationsTable, languagesTable } from "@workspace/db";
+import { db, resumesTable, personalInfoTable, careerObjectiveTable, educationTable, skillsTable, projectsTable, experienceTable, certificationsTable, languagesTable, usersTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth";
 import { logger } from "../lib/logger";
+import { renderResumeHtml } from "../lib/resume-html-templates";
+import { isTemplatePremium, isFontPremium } from "../lib/premium";
 import crypto from "crypto";
 
 const router = Router();
+
+// Visual identity per template, mirrored from the on-screen templates in resume-preview.tsx,
+// so exported HTML/DOCX reflect the template the user actually picked instead of one fixed look.
+// `layout` drives actual document structure (sidebar column vs single flowing column) —
+// color/font alone wasn't enough to make exports feel template-specific.
+const TEMPLATE_STYLES: Record<number, { primary: string; secondary: string; cssFont: string; docxFont: string; layout: "single" | "sidebar" }> = {
+  1: { primary: "111827", secondary: "6b7280", cssFont: "Georgia, 'Times New Roman', serif", docxFont: "Georgia", layout: "single" },
+  2: { primary: "003366", secondary: "D4A843", cssFont: "Calibri, Arial, sans-serif", docxFont: "Calibri", layout: "sidebar" },
+  3: { primary: "7C3AED", secondary: "DB2777", cssFont: "'Montserrat', Arial, sans-serif", docxFont: "Montserrat", layout: "sidebar" },
+  4: { primary: "1C2B3A", secondary: "C9A96E", cssFont: "Georgia, serif", docxFont: "Georgia", layout: "single" },
+  5: { primary: "0D1117", secondary: "39D353", cssFont: "'Courier New', monospace", docxFont: "Consolas", layout: "sidebar" },
+  6: { primary: "4F46E5", secondary: "7C3AED", cssFont: "'Inter', Arial, sans-serif", docxFont: "Calibri", layout: "single" },
+  7: { primary: "0f172a", secondary: "14b8a6", cssFont: "'Inter', Arial, sans-serif", docxFont: "Calibri", layout: "sidebar" },
+  8: { primary: "6366F1", secondary: "8B5CF6", cssFont: "'Inter', Arial, sans-serif", docxFont: "Calibri", layout: "sidebar" },
+  9: { primary: "3b1f0a", secondary: "8B6914", cssFont: "Georgia, 'Times New Roman', serif", docxFont: "Georgia", layout: "single" },
+  10: { primary: "F97316", secondary: "0c0a09", cssFont: "'Inter', Arial, sans-serif", docxFont: "Calibri", layout: "sidebar" },
+};
+const getTemplateStyle = (templateId: number) => TEMPLATE_STYLES[templateId] || TEMPLATE_STYLES[1];
 
 // GET /resumes
 router.get("/resumes", requireAuth, async (req: AuthRequest, res) => {
@@ -25,6 +45,13 @@ router.post("/resumes", requireAuth, async (req: AuthRequest, res) => {
     if (!resumeName) {
       res.status(400).json({ error: "Resume name is required" });
       return;
+    }
+    if (templateId !== undefined && isTemplatePremium(templateId)) {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!)).limit(1);
+      if (!user?.isPremium) {
+        res.status(403).json({ error: "This template requires a Premium subscription." });
+        return;
+      }
     }
     const [resume] = await db.insert(resumesTable).values({
       userId: req.userId!,
@@ -70,6 +97,16 @@ router.patch("/resumes/:resumeId", requireAuth, async (req: AuthRequest, res) =>
   try {
     const resumeId = parseInt(String(req.params.resumeId));
     const { resumeName, templateId, fontFamily, isPublic } = req.body;
+
+    // Defense-in-depth: the frontend already locks Premium templates/fonts in
+    // the UI, but enforce it here too in case the API is called directly.
+    if ((templateId !== undefined && isTemplatePremium(templateId)) || (fontFamily !== undefined && isFontPremium(fontFamily))) {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!)).limit(1);
+      if (!user?.isPremium) {
+        res.status(403).json({ error: "This template or font requires a Premium subscription." });
+        return;
+      }
+    }
 
     const updates: Record<string, unknown> = {};
     if (resumeName !== undefined) updates.resumeName = resumeName;
@@ -229,39 +266,14 @@ router.get("/resumes/:resumeId/export/pdf", requireAuth, async (req: AuthRequest
     const certs = await db.select().from(certificationsTable).where(eq(certificationsTable.resumeId, resumeId));
     const langs = await db.select().from(languagesTable).where(eq(languagesTable.resumeId, resumeId));
 
-    // Build a simple HTML string for the resume, then encode as base64
+    // Build an HTML string that mirrors the on-screen template's actual design
+    // (resume-html-templates.ts ports each of the 10 React templates 1:1), then
+    // encode as base64.
     const name = pi?.fullName || "Resume";
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #222; }
-  h1 { font-size: 22px; margin-bottom: 4px; color: #1e40af; }
-  .contact { font-size: 11px; color: #555; margin-bottom: 16px; }
-  h2 { font-size: 14px; border-bottom: 2px solid #1e40af; padding-bottom: 2px; color: #1e40af; margin-top: 16px; margin-bottom: 8px; }
-  .entry { margin-bottom: 10px; }
-  .entry-title { font-weight: bold; }
-  .entry-sub { color: #444; font-size: 11px; }
-  .skills-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-  .skill-tag { background: #eff6ff; border: 1px solid #93c5fd; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
-</style>
-</head>
-<body>
-<h1>${pi?.fullName || resume.resumeName}</h1>
-<div class="contact">
-  ${pi?.email || ""} ${pi?.phone ? "| " + pi.phone : ""} ${pi?.linkedin ? "| " + pi.linkedin : ""} ${pi?.address ? "| " + pi.address : ""}
-</div>
-${obj ? `<h2>Career Objective</h2><p>${obj.summaryText}</p>` : ""}
-${edus.length > 0 ? `<h2>Education</h2>${edus.map(e => `<div class="entry"><div class="entry-title">${e.degree} in ${e.fieldOfStudy}</div><div class="entry-sub">${e.institution} | ${e.graduationYear} | CGPA: ${e.cgpa}</div></div>`).join("")}` : ""}
-${skls.length > 0 ? `<h2>Skills</h2><div class="skills-grid">${skls.map(s => `<span class="skill-tag">${s.skillName} (${s.proficiencyLevel})</span>`).join("")}</div>` : ""}
-${projs.length > 0 ? `<h2>Projects</h2>${projs.map(p => `<div class="entry"><div class="entry-title">${p.projectTitle}</div><div class="entry-sub">${p.technologies}</div><div>${p.description}</div>${p.projectLink ? `<div><a href="${p.projectLink}">${p.projectLink}</a></div>` : ""}</div>`).join("")}` : ""}
-${exps.length > 0 ? `<h2>Work Experience</h2>${exps.map(e => `<div class="entry"><div class="entry-title">${e.position} at ${e.company}</div><div class="entry-sub">${e.startDate} - ${e.isCurrent ? "Present" : (e.endDate || "")}</div><div>${e.responsibilities}</div></div>`).join("")}` : ""}
-${certs.length > 0 ? `<h2>Certifications</h2>${certs.map(c => `<div class="entry"><div class="entry-title">${c.certName}</div>${c.issuingOrg ? `<div class="entry-sub">${c.issuingOrg}${c.dateIssued ? " | " + c.dateIssued : ""}</div>` : ""}</div>`).join("")}` : ""}
-${langs.length > 0 ? `<h2>Languages</h2><div class="skills-grid">${langs.map(l => `<span class="skill-tag">${l.languageName} (${l.proficiency})</span>`).join("")}</div>` : ""}
-</body>
-</html>`;
+    const html = renderResumeHtml(resume.templateId, {
+      resumeName: resume.resumeName,
+      pi, obj, edus, skls, projs, exps, certs, langs,
+    });
 
     const pdfBase64 = Buffer.from(html).toString("base64");
     const filename = `${name.replace(/\s+/g, "_")}_Resume.html`;
@@ -276,11 +288,17 @@ ${langs.length > 0 ? `<h2>Languages</h2><div class="skills-grid">${langs.map(l =
 // GET /resumes/:resumeId/export/docx
 router.get("/resumes/:resumeId/export/docx", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, WidthType } = await import("docx");
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, WidthType, Table, TableRow, TableCell, VerticalAlign } = await import("docx");
 
     const resumeId = parseInt(String(req.params.resumeId));
     const [resume] = await db.select().from(resumesTable).where(and(eq(resumesTable.id, resumeId), eq(resumesTable.userId, req.userId!))).limit(1);
     if (!resume) { res.status(404).json({ error: "Resume not found" }); return; }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!)).limit(1);
+    if (!user?.isPremium) {
+      res.status(403).json({ error: "Word export requires a Premium subscription." });
+      return;
+    }
 
     const [pi] = await db.select().from(personalInfoTable).where(eq(personalInfoTable.resumeId, resumeId)).limit(1);
     const [obj] = await db.select().from(careerObjectiveTable).where(eq(careerObjectiveTable.resumeId, resumeId)).limit(1);
@@ -291,18 +309,82 @@ router.get("/resumes/:resumeId/export/docx", requireAuth, async (req: AuthReques
     const certs = await db.select().from(certificationsTable).where(eq(certificationsTable.resumeId, resumeId));
     const langs = await db.select().from(languagesTable).where(eq(languagesTable.resumeId, resumeId));
 
+    const style = getTemplateStyle(resume.templateId);
+
+    type Para = InstanceType<typeof Paragraph>;
+
     const sectionHeading = (text: string) => new Paragraph({
       text,
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 240, after: 80 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "1e40af", space: 4 } },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: style.primary, space: 4 } },
     });
 
-    const children: InstanceType<typeof Paragraph>[] = [];
+    const buildObjective = (): Para[] => {
+      if (!obj?.summaryText) return [];
+      return [sectionHeading("Career Objective"), new Paragraph({ children: [new TextRun({ text: obj.summaryText, size: 20 })], spacing: { after: 120 } })];
+    };
+
+    const buildEducation = (): Para[] => {
+      if (edus.length === 0) return [];
+      const out: Para[] = [sectionHeading("Education")];
+      edus.forEach(e => {
+        out.push(new Paragraph({ children: [new TextRun({ text: `${e.degree} in ${e.fieldOfStudy}`, bold: true, size: 22 })] }));
+        out.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}`, size: 20, color: "444444" })], spacing: { after: 80 } }));
+        out.push(new Paragraph({ children: [new TextRun({ text: `${e.graduationYear} | CGPA: ${e.cgpa}`, size: 18, color: "666666" })], spacing: { after: 120 } }));
+      });
+      return out;
+    };
+
+    const buildSkills = (): Para[] => {
+      if (skls.length === 0) return [];
+      const skillText = skls.map(s => `${s.skillName} (${s.proficiencyLevel})`).join("   •   ");
+      return [sectionHeading("Skills"), new Paragraph({ children: [new TextRun({ text: skillText, size: 20 })], spacing: { after: 120 } })];
+    };
+
+    const buildProjects = (): Para[] => {
+      if (projs.length === 0) return [];
+      const out: Para[] = [sectionHeading("Projects")];
+      projs.forEach(p => {
+        out.push(new Paragraph({ children: [new TextRun({ text: p.projectTitle, bold: true, size: 22 })] }));
+        if (p.technologies) out.push(new Paragraph({ children: [new TextRun({ text: p.technologies, size: 18, color: style.primary, italics: true })] }));
+        if (p.description) out.push(new Paragraph({ children: [new TextRun({ text: p.description, size: 20 })], spacing: { after: 120 } }));
+      });
+      return out;
+    };
+
+    const buildExperience = (): Para[] => {
+      if (exps.length === 0) return [];
+      const out: Para[] = [sectionHeading("Work Experience")];
+      exps.forEach(e => {
+        out.push(new Paragraph({ children: [new TextRun({ text: e.position, bold: true, size: 22 }), new TextRun({ text: ` at ${e.company}`, size: 22, color: style.primary })] }));
+        out.push(new Paragraph({ children: [new TextRun({ text: `${e.startDate} – ${e.isCurrent ? "Present" : (e.endDate || "")}`, size: 18, color: "666666", italics: true })] }));
+        if (e.responsibilities) out.push(new Paragraph({ children: [new TextRun({ text: e.responsibilities, size: 20 })], spacing: { after: 120 } }));
+      });
+      return out;
+    };
+
+    const buildCertifications = (): Para[] => {
+      if (certs.length === 0) return [];
+      const out: Para[] = [sectionHeading("Certifications")];
+      certs.forEach(c => {
+        out.push(new Paragraph({ children: [new TextRun({ text: c.certName, bold: true, size: 22 })] }));
+        if (c.issuingOrg) out.push(new Paragraph({ children: [new TextRun({ text: `${c.issuingOrg}${c.dateIssued ? " | " + c.dateIssued : ""}`, size: 18, color: "666666" })], spacing: { after: 100 } }));
+      });
+      return out;
+    };
+
+    const buildLanguages = (): Para[] => {
+      if (langs.length === 0) return [];
+      const langText = langs.map(l => `${l.languageName} (${l.proficiency})`).join("   •   ");
+      return [sectionHeading("Languages"), new Paragraph({ children: [new TextRun({ text: langText, size: 20 })], spacing: { after: 120 } })];
+    };
+
+    const children: (Para | InstanceType<typeof Table>)[] = [];
 
     // Name
     children.push(new Paragraph({
-      children: [new TextRun({ text: pi?.fullName || resume.resumeName, bold: true, size: 44, color: "1e40af" })],
+      children: [new TextRun({ text: pi?.fullName || resume.resumeName, bold: true, size: 44, color: style.primary })],
       alignment: AlignmentType.CENTER,
     }));
 
@@ -316,74 +398,53 @@ router.get("/resumes/:resumeId/export/docx", requireAuth, async (req: AuthReques
       }));
     }
 
-    // Career Objective
-    if (obj?.summaryText) {
-      children.push(sectionHeading("Career Objective"));
-      children.push(new Paragraph({ children: [new TextRun({ text: obj.summaryText, size: 20 })], spacing: { after: 120 } }));
+    if (style.layout === "sidebar") {
+      // Two-column layout via a borderless table: narrow shaded sidebar + wider main column —
+      // mirrors the sidebar templates' actual structure instead of just recoloring one flat layout.
+      const sidebarChildren = [...buildSkills(), ...buildLanguages(), ...buildCertifications()];
+      const mainChildren = [...buildObjective(), ...buildEducation(), ...buildExperience(), ...buildProjects()];
+      const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder },
+        rows: [new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 32, type: WidthType.PERCENTAGE },
+              shading: { fill: "F8FAFC" },
+              verticalAlign: VerticalAlign.TOP,
+              margins: { top: 120, bottom: 120, left: 120, right: 160 },
+              children: sidebarChildren.length > 0 ? sidebarChildren : [new Paragraph({ text: "" })],
+            }),
+            new TableCell({
+              width: { size: 68, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlign.TOP,
+              margins: { top: 120, bottom: 120, left: 160, right: 0 },
+              children: mainChildren.length > 0 ? mainChildren : [new Paragraph({ text: "" })],
+            }),
+          ],
+        })],
+      }));
+    } else {
+      children.push(...buildObjective(), ...buildEducation(), ...buildSkills(), ...buildProjects(), ...buildExperience(), ...buildCertifications(), ...buildLanguages());
     }
 
-    // Education
-    if (edus.length > 0) {
-      children.push(sectionHeading("Education"));
-      edus.forEach(e => {
-        children.push(new Paragraph({ children: [new TextRun({ text: `${e.degree} in ${e.fieldOfStudy}`, bold: true, size: 22 })] }));
-        children.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}`, size: 20, color: "444444" })], spacing: { after: 80 } }));
-        children.push(new Paragraph({ children: [new TextRun({ text: `${e.graduationYear} | CGPA: ${e.cgpa}`, size: 18, color: "666666" })], spacing: { after: 120 } }));
-      });
-    }
-
-    // Skills
-    if (skls.length > 0) {
-      children.push(sectionHeading("Skills"));
-      const skillText = skls.map(s => `${s.skillName} (${s.proficiencyLevel})`).join("   •   ");
-      children.push(new Paragraph({ children: [new TextRun({ text: skillText, size: 20 })], spacing: { after: 120 } }));
-    }
-
-    // Projects
-    if (projs.length > 0) {
-      children.push(sectionHeading("Projects"));
-      projs.forEach(p => {
-        children.push(new Paragraph({ children: [new TextRun({ text: p.projectTitle, bold: true, size: 22 })] }));
-        if (p.technologies) children.push(new Paragraph({ children: [new TextRun({ text: p.technologies, size: 18, color: "1e40af", italics: true })] }));
-        if (p.description) children.push(new Paragraph({ children: [new TextRun({ text: p.description, size: 20 })], spacing: { after: 120 } }));
-      });
-    }
-
-    // Work Experience
-    if (exps.length > 0) {
-      children.push(sectionHeading("Work Experience"));
-      exps.forEach(e => {
-        children.push(new Paragraph({ children: [new TextRun({ text: e.position, bold: true, size: 22 }), new TextRun({ text: ` at ${e.company}`, size: 22, color: "1e40af" })] }));
-        children.push(new Paragraph({ children: [new TextRun({ text: `${e.startDate} – ${e.isCurrent ? "Present" : (e.endDate || "")}`, size: 18, color: "666666", italics: true })] }));
-        if (e.responsibilities) children.push(new Paragraph({ children: [new TextRun({ text: e.responsibilities, size: 20 })], spacing: { after: 120 } }));
-      });
-    }
-
-    // Certifications
-    if (certs.length > 0) {
-      children.push(sectionHeading("Certifications"));
-      certs.forEach(c => {
-        children.push(new Paragraph({ children: [new TextRun({ text: c.certName, bold: true, size: 22 })] }));
-        if (c.issuingOrg) children.push(new Paragraph({ children: [new TextRun({ text: `${c.issuingOrg}${c.dateIssued ? " | " + c.dateIssued : ""}`, size: 18, color: "666666" })], spacing: { after: 100 } }));
-      });
-    }
-
-    // Languages
-    if (langs.length > 0) {
-      children.push(sectionHeading("Languages"));
-      const langText = langs.map(l => `${l.languageName} (${l.proficiency})`).join("   •   ");
-      children.push(new Paragraph({ children: [new TextRun({ text: langText, size: 20 })], spacing: { after: 120 } }));
-    }
+    // A4: 11906×16838 twips (210×297mm); Letter: 12240×15840 twips (8.5×11in)
+    const ps = String(req.query.paperSize || "a4").toLowerCase();
+    const pageSize = ps === "letter"
+      ? { width: 12240, height: 15840 }
+      : { width: 11906, height: 16838 };
 
     const doc = new Document({
       sections: [{
-        properties: { page: { margin: { top: 720, right: 900, bottom: 720, left: 900 } } as never },
+        properties: { page: { size: pageSize, margin: { top: 720, right: 900, bottom: 720, left: 900 } } as never },
         children,
       }],
       styles: {
-        default: { document: { run: { font: "Calibri", size: 20 } } },
+        default: { document: { run: { font: style.docxFont, size: 20 } } },
         paragraphStyles: [
-          { id: "Heading2", name: "Heading 2", run: { bold: true, size: 24, color: "1e40af" }, paragraph: {} },
+          { id: "Heading2", name: "Heading 2", run: { bold: true, size: 24, color: style.primary, font: style.docxFont }, paragraph: {} },
         ],
       },
     });
