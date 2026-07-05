@@ -28,8 +28,8 @@ const TEMPLATES = [
 const SAMPLE_RESUME = {
   personalInfo: {
     id: 1, resumeId: 1,
-    fullName: "Aarav Sharma",
-    email: "aarav.sharma@email.com",
+    fullName: "Ashu Desai",
+    email: "ashudesai1@gmail.com",
     phone: "+91 98765 43210",
     linkedin: "linkedin.com/in/aaravsharma",
     portfolio: "aaravsharma.dev",
@@ -84,7 +84,7 @@ function TemplateThumb({ id }: { id: number }) {
           style={{ width: RESUME_WIDTH, transform: `scale(${scale})`, pointerEvents: "none" }}
           aria-hidden="true"
         >
-          <ResumePreview data={SAMPLE_RESUME} templateId={id} resumeName="Aarav Sharma" />
+          <ResumePreview data={SAMPLE_RESUME} templateId={id} resumeName="Ashu Desai" />
         </div>
       )}
     </div>

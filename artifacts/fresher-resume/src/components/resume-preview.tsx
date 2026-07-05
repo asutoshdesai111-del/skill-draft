@@ -212,7 +212,6 @@ function T5Developer({ data, resumeName, fontFamily }: TP) {
   return (
     <div className="resume-preview" style={{ fontFamily: ff, background: "#fff", color: "#24292f" }}>
       <div style={{ background: dark, padding: "28px 36px" }}>
-        <div style={{ fontSize: 11, color: "#7ee787", marginBottom: 6 }}>{"$ whoami"}</div>
         <h1 style={{ fontSize: 26, fontWeight: 700, color: "#f0f6fc", margin: "0 0 8px" }}>{pi?.fullName || resumeName || "Your Name"}</h1>
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 12, marginTop: 6 }}>
           {contact(pi).map((c, i) => <span key={i} style={{ fontSize: 11, color: "#8b949e" }}>{c}</span>)}

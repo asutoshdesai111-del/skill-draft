@@ -20,8 +20,8 @@ const RESUME_PREVIEW_WIDTH = 794;
 const SHOWCASE_RESUME = {
   personalInfo: {
     id: 1, resumeId: 1,
-    fullName: "Aarav Sharma",
-    email: "aarav.sharma@email.com",
+    fullName: "Ashu Desai",
+    email: "ashudesai1@gmail.com",
     phone: "9876543210",
     linkedin: "linkedin.com/in/aaravsharma",
     portfolio: "aaravsharma.dev",
@@ -75,7 +75,7 @@ function ShowcaseThumb({ templateId }: { templateId: number }) {
           style={{ width: RESUME_PREVIEW_WIDTH, transform: `scale(${scale})`, pointerEvents: "none" }}
           aria-hidden="true"
         >
-          <ResumePreview data={SHOWCASE_RESUME} templateId={templateId} resumeName="Aarav Sharma" />
+          <ResumePreview data={SHOWCASE_RESUME} templateId={templateId} resumeName="Ashu Desai" />
         </div>
       )}
     </div>

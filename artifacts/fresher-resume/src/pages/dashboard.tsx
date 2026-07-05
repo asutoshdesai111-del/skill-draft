@@ -42,8 +42,8 @@ const RESUME_PREVIEW_WIDTH = 794;
 const SAMPLE_RESUME = {
   personalInfo: {
     id: 1, resumeId: 1,
-    fullName: "Aarav Sharma",
-    email: "aarav.sharma@email.com",
+    fullName: "Ashu Desai",
+    email: "ashudesai1@gmail.com",
     phone: "9876543210",
     linkedin: "linkedin.com/in/aaravsharma",
     portfolio: "aaravsharma.dev",
@@ -268,7 +268,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-4 gap-2 w-full md:w-72 flex-shrink-0">
                   {PREMIUM_TEASER_TEMPLATE_IDS.map(tid => (
                     <div key={tid} className="relative rounded-md overflow-hidden border border-blue-200 shadow-sm">
-                      <ResumeThumb templateId={tid} resumeName="Aarav Sharma" />
+                      <ResumeThumb templateId={tid} resumeName="Ashu Desai" />
                       <div className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5">
                         <Lock className="w-2.5 h-2.5 text-white" />
                       </div>

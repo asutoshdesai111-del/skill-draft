@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -27,6 +27,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Combobox } from "@/components/ui/combobox";
+import { DEGREE_NAMES, getFieldOptions } from "@/lib/education-options";
 import { FileText, ArrowLeft, ArrowRight, Plus, Trash2, Eye, Save, Loader2, X, HelpCircle, Check } from "lucide-react";
 
 const STEPS = [
@@ -218,11 +220,21 @@ function EduEntry({ resumeId, edu, onDelete }: { resumeId: number; edu: EduForm 
   const { toast } = useToast();
   const update = useUpdateEducation();
   const del = useDeleteEducation();
-  const { register, handleSubmit, formState: { errors } } = useForm<EduForm>({
+  const { register, handleSubmit, control, watch, getValues, setValue, formState: { errors } } = useForm<EduForm>({
     resolver: zodResolver(eduSchema),
     defaultValues: { ...edu },
   });
   const [saved, setSaved] = useState(false);
+  const selectedDegree = watch("degree");
+  const fieldOptions = getFieldOptions(selectedDegree);
+
+  const handleDegreeChange = (newDegree: string, onChange: (v: string) => void) => {
+    onChange(newDegree);
+    const currentField = getValues("fieldOfStudy");
+    if (currentField && !getFieldOptions(newDegree).includes(currentField)) {
+      setValue("fieldOfStudy", "", { shouldValidate: false });
+    }
+  };
 
   const onSubmit = (data: EduForm) => {
     update.mutate({ resumeId, educationId: edu.id, data }, {
@@ -253,12 +265,41 @@ function EduEntry({ resumeId, edu, onDelete }: { resumeId: number; edu: EduForm 
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Degree *</Label>
-              <Input placeholder="B.Tech / BCA / MCA" {...register("degree")} className="h-8 text-sm" />
+              <Controller
+                name="degree"
+                control={control}
+                render={({ field }) => (
+                  <Combobox
+                    value={field.value}
+                    onChange={v => handleDegreeChange(v, field.onChange)}
+                    options={DEGREE_NAMES}
+                    placeholder="Select degree"
+                    searchPlaceholder="Search degrees..."
+                    customPlaceholder="e.g. B.Tech (Robotics)"
+                    data-testid="input-degree"
+                  />
+                )}
+              />
               {errors.degree && <p className="text-xs text-destructive">{errors.degree.message}</p>}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Field of Study *</Label>
-              <Input placeholder="Computer Science" {...register("fieldOfStudy")} className="h-8 text-sm" />
+              <Controller
+                name="fieldOfStudy"
+                control={control}
+                render={({ field }) => (
+                  <Combobox
+                    key={selectedDegree}
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={fieldOptions}
+                    placeholder="Select field of study"
+                    searchPlaceholder="Search fields..."
+                    customPlaceholder="e.g. Renewable Energy"
+                    data-testid="input-field-of-study"
+                  />
+                )}
+              />
               {errors.fieldOfStudy && <p className="text-xs text-destructive">{errors.fieldOfStudy.message}</p>}
             </div>
             <div className="space-y-1">
@@ -294,7 +335,7 @@ function StepEducation({ resumeId, onSaved }: { resumeId: number; onSaved: () =>
   const create = useCreateEducation();
 
   const addNew = () => {
-    create.mutate({ resumeId, data: { institution: "Enter institution", degree: "B.Tech", fieldOfStudy: "Computer Science", graduationYear: 2024, cgpa: "8.0" } }, {
+    create.mutate({ resumeId, data: { institution: "Enter institution", degree: "B.Tech / B.E. (Bachelor of Technology/Engineering)", fieldOfStudy: "Computer Science & Engineering", graduationYear: 2024, cgpa: "8.0" } }, {
       onSuccess: () => qc.invalidateQueries({ queryKey: getListEducationQueryKey(resumeId) }),
       onError: () => toast({ title: "Failed to add entry", variant: "destructive" }),
     });

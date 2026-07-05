@@ -184,7 +184,6 @@ function t5(ctx: ResumeHtmlContext): string {
   const sfFont = "font-family:Arial,sans-serif;";
   const body = `
     <div style="background:${dark};padding:28px 36px">
-      <div style="font-size:11px;color:#7ee787;margin-bottom:6px">$ whoami</div>
       <h1 style="font-size:26px;font-weight:700;color:#f0f6fc;margin:0 0 8px">${name(ctx)}</h1>
       <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px">${contactParts(ctx.pi).map(c => `<span style="font-size:11px;color:#8b949e">${c}</span>`).join("")}</div>
       <div style="margin-top:14px;display:flex;gap:6px;flex-wrap:wrap">${ctx.skls.slice(0, 8).map(s => `<span style="background:#21262d;border:1px solid ${darkBorder};color:${green};font-size:10px;font-weight:600;padding:2px 10px;border-radius:20px">${esc(s.skillName)}</span>`).join("")}</div>
