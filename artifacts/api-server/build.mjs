@@ -15,7 +15,11 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    entryPoints: [
+      path.resolve(artifactDir, "src/index.ts"),
+      // Bare Express `app` (no `.listen()` call) for serverless hosts like Vercel.
+      path.resolve(artifactDir, "src/app.ts"),
+    ],
     platform: "node",
     bundle: true,
     format: "esm",
