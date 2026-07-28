@@ -12,8 +12,6 @@ PDF export.
 
 ![Features and template gallery](screenshots/features-templates.png)
 
-![Mobile view](screenshots/mobile.png)
-
 ## Features
 
 - 8-step guided wizard covering every resume section
